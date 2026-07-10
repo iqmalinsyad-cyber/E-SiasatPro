@@ -102,7 +102,7 @@
     <!-- SIDEBAR -->
     <aside class="w-64 glass-panel flex flex-col h-full border-r border-t-0 border-b-0 border-l-0 z-20 shrink-0 hidden md:flex">
         <div class="h-20 flex items-center px-6 border-b border-white/5">
-            <img src="https://lh3.googleusercontent.com/d/1iMly4_2_oQQBHcGA4XSWAeUuVFBEApup" alt="Logo" class="w-10 h-10 object-contain mr-3 rounded-lg bg-white/10 p-1">
+            <img src="https://lh3.googleusercontent.com/d/1iMly4_2_oQQBHcGA4XSWAeUuVFBEApup" alt="Logo" class="w-10 h-10 object-contain mr-3 rounded-lg bg-white/10 p-1" onerror="this.src='https://placehold.co/40x40/0f172a/ffffff?text=E2U'">
             <span class="text-xl font-bold tracking-wider text-white">ESiasat2U</span>
         </div>
         
@@ -414,26 +414,33 @@
     <script>
         // --- 1. NAVIGATION & LAYOUT LOGIC ---
         function showSection(sectionId, navElement) {
-            // Hide all sections
-            document.getElementById('section-dashboard').classList.add('section-hidden');
-            document.getElementById('section-lapangan').classList.add('section-hidden');
+            // Hide all sections safely checking existence
+            const dash = document.getElementById('section-dashboard');
+            const lapang = document.getElementById('section-lapangan');
+            if (dash) dash.classList.add('section-hidden');
+            if (lapang) lapang.classList.add('section-hidden');
             
             // Show targeted section
-            document.getElementById('section-' + sectionId).classList.remove('section-hidden');
+            const targetSection = document.getElementById('section-' + sectionId);
+            if(targetSection) targetSection.classList.remove('section-hidden');
             
             // Update Title
             const titles = {
                 'dashboard': 'Papan Pemuka Utama',
                 'lapangan': 'Modul Siasatan Lapangan'
             };
-            document.getElementById('pageTitle').innerText = titles[sectionId];
+            const titleEl = document.getElementById('pageTitle');
+            if(titleEl) titleEl.innerText = titles[sectionId];
             
             // Update Active Nav Style
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('nav-active', 'border-l-3', 'border-blue-400');
                 el.classList.add('text-slate-300');
             });
-            navElement.classList.add('nav-active');
+            if (navElement) {
+                 navElement.classList.remove('text-slate-300');
+                 navElement.classList.add('nav-active');
+            }
             
             // Hide dashboard list if navigating away
             if(sectionId !== 'dashboard') closeDashboardList();
@@ -443,6 +450,8 @@
         function openModal(modalId, contentId) {
             const modal = document.getElementById(modalId);
             const content = document.getElementById(contentId);
+            if(!modal || !content) return;
+            
             modal.classList.remove('section-hidden');
             // Slight delay for CSS transition
             setTimeout(() => {
@@ -452,24 +461,33 @@
         }
 
         function closeModal(modalId, contentId) {
+            const modal = document.getElementById(modalId);
             const content = document.getElementById(contentId);
+            if(!modal || !content) return;
+
             content.classList.remove('scale-100', 'opacity-100');
             content.classList.add('scale-95', 'opacity-0');
             setTimeout(() => {
-                document.getElementById(modalId).classList.add('section-hidden');
+                modal.classList.add('section-hidden');
             }, 300);
         }
 
         function openTaskModal() {
-            document.getElementById('taskDate').valueAsDate = new Date();
+            const taskDateInput = document.getElementById('taskDate');
+            if(taskDateInput) taskDateInput.valueAsDate = new Date();
             openModal('modal-task', 'modal-task-content');
         }
 
         function openSubtaskModal(taskId) {
             document.getElementById('parentTaskId').value = taskId;
             document.getElementById('form-rekod').reset();
-            document.getElementById('rekodDate').valueAsDate = new Date();
+            const rekodDateInput = document.getElementById('rekodDate');
+            if(rekodDateInput) rekodDateInput.valueAsDate = new Date();
             document.getElementById('fileListPreview').innerHTML = '';
+            
+            // Reset actual file input element to clear previous selections
+            const fileInput = document.getElementById('rekodFiles');
+            if(fileInput) fileInput.value = ''; 
             selectedFiles = [];
             openModal('modal-subtask', 'modal-subtask-content');
         }
@@ -496,13 +514,18 @@
             tasks.unshift(newTask); // Add to top
             renderTasks();
             closeModal('modal-task', 'modal-task-content');
+            
+            // Reset fields
             document.getElementById('taskName').value = '';
+            document.getElementById('taskDate').value = '';
         }
 
         function renderTasks() {
             const container = document.getElementById('taskListContainer');
             const emptyState = document.getElementById('emptyTaskState');
             
+            if (!container || !emptyState) return;
+
             if (tasks.length === 0) {
                 container.innerHTML = '';
                 emptyState.classList.remove('section-hidden');
@@ -566,7 +589,7 @@
                 if(rec.status === 'Selesai') badgeClass = 'status-selesai';
                 else if(rec.status === 'Dalam Proses') badgeClass = 'status-proses';
                 else if(rec.status === 'KIV') badgeClass = 'status-kiv';
-                else if(rec.status.includes('Risiko')) {
+                else if(rec.status.includes('Risiko Kosong')) { 
                     badgeClass = 'status-risiko';
                     statusLabel = 'Risiko'; // Shorten label for badge
                 }
@@ -578,13 +601,13 @@
                         <i class="fa-solid fa-file-lines text-xl"></i>
                     </div>
                     
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start mb-1">
-                            <h4 class="font-medium text-white text-sm truncate pr-2">${rec.pemohon}</h4>
+                    <div class="flex-1 min-w-0 max-w-full">
+                        <div class="flex justify-between items-start mb-1 gap-2">
+                            <h4 class="font-medium text-white text-sm truncate" title="${rec.pemohon}">${rec.pemohon}</h4>
                             <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass} shrink-0">${statusLabel}</span>
                         </div>
                         <p class="text-xs text-slate-400 mb-1"><i class="fa-solid fa-fingerprint w-3"></i> ${rec.refId}</p>
-                        <p class="text-xs text-slate-400 truncate"><i class="fa-solid fa-location-dot w-3"></i> ${rec.alamat}</p>
+                        <p class="text-xs text-slate-400 truncate" title="${rec.alamat}"><i class="fa-solid fa-location-dot w-3"></i> ${rec.alamat}</p>
                         
                         ${rec.fileCount > 0 ? `<div class="mt-2 text-[10px] text-emerald-400/80"><i class="fa-brands fa-google-drive"></i> ${rec.fileCount} fail dimuat naik</div>` : ''}
                     </div>
@@ -602,17 +625,18 @@
         function handleFileSelect(e) {
             const files = Array.from(e.target.files);
             const list = document.getElementById('fileListPreview');
-            
+            if(!list) return;
+
             // Logic to restrict max 5 files
             if(selectedFiles.length + files.length > 5) {
-                alert("Maksimum 5 fail sahaja dibenarkan.");
+                showCustomAlert("Maksimum 5 fail sahaja dibenarkan.");
                 return;
             }
 
             files.forEach(f => {
                 // Logic to restrict size (simulated 15MB limit check)
                 if(f.size > 15 * 1024 * 1024) {
-                    alert(`Fail ${f.name} melebihi 15MB.`);
+                    showCustomAlert(`Fail ${f.name} melebihi 15MB.`);
                     return;
                 }
                 selectedFiles.push(f);
@@ -623,6 +647,7 @@
         function submitRekod(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSimpanRekod');
+            if(!btn) return;
             const originalText = btn.innerHTML;
             
             // Visual feedback for Drive Upload simulation
@@ -655,10 +680,26 @@
                 btn.classList.remove('opacity-70');
                 closeModal('modal-subtask', 'modal-subtask-content');
                 
-                alert(`Rekod berjaya disimpan!\n${selectedFiles.length} fail telah dihalakan ke folder Google Drive.`);
+                showCustomAlert(`Rekod berjaya disimpan!\n${selectedFiles.length} fail telah dihalakan ke folder Google Drive.`);
             }, 1500);
         }
 
+        // Custom alert function to replace native alert()
+        function showCustomAlert(message) {
+             const alertHtml = `
+             <div id="customAlertBox" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                <div class="glass-panel bg-slate-900/90 w-full max-w-sm rounded-2xl border border-blue-500/50 shadow-2xl p-6 text-center transform scale-100 transition-all">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-400 text-3xl">
+                        <i class="fa-solid fa-info"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Makluman</h3>
+                    <p class="text-slate-300 text-sm mb-6 whitespace-pre-line">${message}</p>
+                    <button onclick="document.getElementById('customAlertBox').remove()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition w-full">Tutup</button>
+                </div>
+             </div>
+             `;
+             document.body.insertAdjacentHTML('beforeend', alertHtml);
+        }
 
         // --- 4. DASHBOARD INTERACTION LOGIC ---
         
@@ -686,6 +727,8 @@
             const tbody = document.getElementById('dashboard-table-body');
             const titleEl = document.getElementById('dashboard-list-title');
             
+            if(!listContainer || !tbody || !titleEl) return;
+
             titleEl.innerText = 'Senarai: ' + title;
             tbody.innerHTML = '';
             
@@ -723,7 +766,8 @@
         }
 
         function closeDashboardList() {
-            document.getElementById('dashboard-list-container').classList.add('section-hidden');
+            const list = document.getElementById('dashboard-list-container');
+            if(list) list.classList.add('section-hidden');
         }
 
     </script>
