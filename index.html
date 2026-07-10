@@ -1,775 +1,768 @@
-<!DOCTYPE html>
-<html lang="ms">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESiasat2U - Premium Glass UI</title>
-    <!-- Favicon -->
-    <link rel="icon" href="https://lh3.googleusercontent.com/d/1iMly4_2_oQQBHcGA4XSWAeUuVFBEApup" type="image/x-icon">
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Search, Plus, LayoutDashboard, FileText, UploadCloud, 
+  CheckCircle, AlertCircle, Clock, X, Home, File as FileIcon, Image as ImageIcon, Check, Eye, Edit2
+} from 'lucide-react';
+
+export default function App() {
+  // --- STATE MANAGEMENT ---
+  const [activeTab, setActiveTab] = useState('dashboard'); 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dashboardFilter, setDashboardFilter] = useState(null); 
+  
+  // Data State
+  const [tasks, setTasks] = useState([
+    {
+      id: 'T001',
+      namaTugasan: 'Siasatan Bersepadu Zon Utara',
+      tarikh: '2026-07-12',
+      rekod: [
+        {
+          id: 'R001',
+          tarikhSiasatan: '2026-07-12',
+          namaPemohon: 'Ahmad bin Abu',
+          idRujukan: 'K001-992',
+          alamat: 'No 12, Jalan Indah, Taman Indah',
+          status: 'Dalam proses',
+          statusRumah: 'Tiada',
+          catatan: 'Pemohon tiada di rumah semasa lawatan pertama.',
+          files: []
+        }
+      ]
+    }
+  ]);
+
+  // Modal States
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState(['T001']);
+  
+  // Konfigurasi Modal Rekod (Create / Edit / View)
+  const [recordModalConfig, setRecordModalConfig] = useState({
+    isOpen: false,
+    mode: 'create', // 'create' | 'edit' | 'view'
+    taskId: null,
+    recordData: null
+  });
+
+  // --- EFFECT: SET FAVICON ---
+  useEffect(() => {
+    const link = document.querySelector("link[rel~='icon']");
+    const logoUrl = "https://lh3.googleusercontent.com/d/1iMly4_2_oQQBHcGA4XSWAeUuVFBEApup";
+    if (!link) {
+      const newLink = document.createElement('link');
+      newLink.rel = 'icon';
+      newLink.href = logoUrl;
+      document.head.appendChild(newLink);
+    } else {
+      link.href = logoUrl;
+    }
+    document.title = "Sistem Rekod Siasatan";
+  }, []);
+
+  // --- DERIVED DATA (DASHBOARD) ---
+  const allRecords = useMemo(() => {
+    return tasks.flatMap(task => 
+      task.rekod.map(r => ({ ...r, parentTaskName: task.namaTugasan, parentTaskId: task.id }))
+    );
+  }, [tasks]);
+
+  const stats = useMemo(() => {
+    return {
+      total: allRecords.length,
+      kiv: allRecords.filter(r => r.status === 'KIV').length,
+      selesai: allRecords.filter(r => r.status === 'Selesai').length,
+      tidakWujud: allRecords.filter(r => r.statusRumah === 'Tidak wujud').length,
+      rumahKosong: allRecords.filter(r => r.statusRumah === 'Rumah kosong').length,
+      asnafTidakDuduk: allRecords.filter(r => r.statusRumah === 'Asnaf tidak duduk').length,
+    };
+  }, [allRecords]);
+
+  // --- FILTER & SEARCH LOGIC ---
+  const getFilteredRecords = () => {
+    let filtered = allRecords;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(r => 
+        r.namaPemohon.toLowerCase().includes(q) ||
+        r.idRujukan.toLowerCase().includes(q) ||
+        r.parentTaskName.toLowerCase().includes(q)
+      );
+    } else if (dashboardFilter) {
+      if (dashboardFilter === 'kiv') filtered = filtered.filter(r => r.status === 'KIV');
+      if (dashboardFilter === 'selesai') filtered = filtered.filter(r => r.status === 'Selesai');
+      if (dashboardFilter === 'tidak_wujud') filtered = filtered.filter(r => r.statusRumah === 'Tidak wujud');
+      if (dashboardFilter === 'rumah_kosong') filtered = filtered.filter(r => r.statusRumah === 'Rumah kosong');
+      if (dashboardFilter === 'asnaf_tidak_duduk') filtered = filtered.filter(r => r.statusRumah === 'Asnaf tidak duduk');
+    }
+
+    return filtered;
+  };
+
+  const handleDashboardClick = (filter) => {
+    setDashboardFilter(filter);
+    setActiveTab('dashboard_list');
+  };
+
+  const toggleTaskExpand = (taskId) => {
+    setExpandedTasks(prev => 
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    );
+  };
+
+  // --- UI HELPERS (LIGHT MODE) ---
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'Dalam proses': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'KIV': return 'bg-pink-100 text-pink-700 border-pink-200';
+      case 'Selesai': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      default: return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+  };
+
+  const checkTaskSelesai = (task) => {
+    if (task.rekod.length === 0) return false;
+    return task.rekod.every(r => r.status === 'Selesai');
+  };
+
+  // --- COMPONENTS ---
+  const Dashboard = () => (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Main Stats */}
+        <div 
+          onClick={() => handleDashboardClick('all')}
+          className="cursor-pointer group relative overflow-hidden bg-white/70 backdrop-blur-xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:bg-white/90 transition-all"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-blue-600">
+            <LayoutDashboard size={80} />
+          </div>
+          <p className="text-slate-500 text-sm font-semibold mb-1">Jumlah Siasatan (Task)</p>
+          <h3 className="text-5xl font-bold text-slate-800">{stats.total}</h3>
+        </div>
+
+        <div 
+          onClick={() => handleDashboardClick('kiv')}
+          className="cursor-pointer group relative overflow-hidden bg-pink-50/70 backdrop-blur-xl border border-pink-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 hover:shadow-[0_8px_30px_rgb(236,72,153,0.1)] hover:bg-pink-100/70 transition-all"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-pink-600">
+            <Clock size={80} />
+          </div>
+          <p className="text-pink-600 text-sm font-semibold mb-1">Status KIV</p>
+          <h3 className="text-5xl font-bold text-pink-700">{stats.kiv}</h3>
+        </div>
+
+        <div 
+          onClick={() => handleDashboardClick('selesai')}
+          className="cursor-pointer group relative overflow-hidden bg-emerald-50/70 backdrop-blur-xl border border-emerald-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 hover:shadow-[0_8px_30px_rgb(16,185,129,0.1)] hover:bg-emerald-100/70 transition-all"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-emerald-600">
+            <CheckCircle size={80} />
+          </div>
+          <p className="text-emerald-600 text-sm font-semibold mb-1">Selesai Disiasat</p>
+          <h3 className="text-5xl font-bold text-emerald-700">{stats.selesai}</h3>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <AlertCircle className="text-amber-500" /> Status Rumah Berisiko
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div onClick={() => handleDashboardClick('tidak_wujud')} className="cursor-pointer bg-white/60 backdrop-blur-md border border-amber-200/60 rounded-xl p-5 hover:bg-white/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm">Tidak Wujud</p>
+              <h4 className="text-2xl font-bold text-slate-800">{stats.tidakWujud}</h4>
+            </div>
+            <div className="bg-amber-100 p-2 rounded-lg"><Home className="text-amber-600" size={24} /></div>
+          </div>
+          <div onClick={() => handleDashboardClick('rumah_kosong')} className="cursor-pointer bg-white/60 backdrop-blur-md border border-orange-200/60 rounded-xl p-5 hover:bg-white/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm">Rumah Kosong</p>
+              <h4 className="text-2xl font-bold text-slate-800">{stats.rumahKosong}</h4>
+            </div>
+            <div className="bg-orange-100 p-2 rounded-lg"><Home className="text-orange-600" size={24} /></div>
+          </div>
+          <div onClick={() => handleDashboardClick('asnaf_tidak_duduk')} className="cursor-pointer bg-white/60 backdrop-blur-md border border-red-200/60 rounded-xl p-5 hover:bg-white/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm">Asnaf Tidak Duduk</p>
+              <h4 className="text-2xl font-bold text-slate-800">{stats.asnafTidakDuduk}</h4>
+            </div>
+            <div className="bg-red-100 p-2 rounded-lg"><Home className="text-red-600" size={24} /></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const FilteredRecordsList = () => {
+    const records = getFilteredRecords();
+    return (
+      <div className="space-y-4 animate-in fade-in duration-500">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">
+            {searchQuery ? `Hasil Carian: "${searchQuery}"` : 'Senarai Rekod Siasatan'}
+          </h2>
+          <button 
+            onClick={() => { setActiveTab('dashboard'); setDashboardFilter(null); setSearchQuery(''); }}
+            className="text-sm font-medium text-blue-600 hover:text-blue-800"
+          >
+            &larr; Kembali ke Dashboard
+          </button>
+        </div>
+
+        {records.length === 0 ? (
+          <div className="text-center py-12 bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-sm">
+            <p className="text-slate-500">Tiada rekod dijumpai.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {records.map(r => (
+              <div key={r.id} className="bg-white/80 backdrop-blur-md border border-white shadow-sm p-5 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md transition-all">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="font-bold text-slate-800 text-lg">{r.namaPemohon}</h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(r.status)}`}>
+                      {r.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500">ID: {r.idRujukan} | Tarikh: {r.tarikhSiasatan}</p>
+                  <p className="text-xs text-blue-600/80 mt-1 font-medium">Tugasan: {r.parentTaskName}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {r.statusRumah !== 'Tiada' && (
+                    <div className="px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-semibold">
+                      Risiko: {r.statusRumah}
+                    </div>
+                  )}
+                  {/* Action buttons in search view */}
+                  <button onClick={() => setRecordModalConfig({isOpen: true, mode: 'view', taskId: r.parentTaskId, recordData: r})} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    <Eye size={18} />
+                  </button>
+                  <button onClick={() => setRecordModalConfig({isOpen: true, mode: 'edit', taskId: r.parentTaskId, recordData: r})} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                    <Edit2 size={18} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const SiasatanLapangan = () => (
+    <div className="animate-in fade-in duration-500">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Siasatan Lapangan</h2>
+          <p className="text-slate-500 text-sm mt-1">Urus tugasan dan rekod siasatan secara terperinci.</p>
+        </div>
+        <button 
+          onClick={() => setIsTaskModalOpen(true)}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl shadow-md shadow-blue-200 transition-all font-semibold"
+        >
+          <Plus size={18} />
+          Create New Task
+        </button>
+      </div>
+
+      <div className="space-y-6">
+        {tasks.map(task => {
+          const isSelesai = checkTaskSelesai(task);
+          const isExpanded = expandedTasks.includes(task.id);
+          
+          return (
+            <div key={task.id} 
+              className={`rounded-2xl border backdrop-blur-xl transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md
+                ${isSelesai 
+                  ? 'bg-emerald-50/70 border-emerald-200 shadow-[0_4px_24px_rgba(16,185,129,0.08)]' 
+                  : 'bg-white/70 border-white'}`
+              }
+            >
+              <div 
+                className={`p-6 cursor-pointer flex justify-between items-center ${isExpanded ? 'border-b border-slate-100' : ''}`}
+                onClick={() => toggleTaskExpand(task.id)}
+              >
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-3">
+                    {task.namaTugasan}
+                    {isSelesai && <CheckCircle size={20} className="text-emerald-500" />}
+                  </h3>
+                  <p className="text-slate-500 text-sm font-medium">Tarikh Tugasan: {task.tarikh} <span className="mx-2">•</span> Jumlah Rekod: {task.rekod.length}</p>
+                </div>
+                <div className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                  <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div className="p-6 bg-slate-50/50">
+                  <div className="mb-4">
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setRecordModalConfig({ isOpen: true, mode: 'create', taskId: task.id, recordData: null }); 
+                      }}
+                      className="flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm transition-all border border-blue-100 shadow-sm font-semibold"
+                    >
+                      <Plus size={16} /> Rekod Siasatan Baru
+                    </button>
+                  </div>
+
+                  {task.rekod.length === 0 ? (
+                    <p className="text-slate-400 text-sm italic">Tiada rekod siasatan buat masa ini.</p>
+                  ) : (
+                    <div className="grid gap-3">
+                      {task.rekod.map(rekod => (
+                        <div key={rekod.id} className="bg-white border border-slate-100 shadow-sm rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4 group hover:shadow-md hover:border-slate-200 transition-all">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="font-bold text-slate-800">{rekod.namaPemohon}</span>
+                              <span className="text-xs font-medium text-slate-400">({rekod.idRujukan})</span>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(rekod.status)}`}>
+                                {rekod.status}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-600 mb-1"><span className="text-slate-400 font-medium">Alamat:</span> {rekod.alamat}</p>
+                            {rekod.catatan && <p className="text-sm text-slate-500 italic mt-2">"{rekod.catatan}"</p>}
+                          </div>
+                          
+                          <div className="flex flex-col items-end justify-between gap-3">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setRecordModalConfig({isOpen: true, mode: 'view', taskId: task.id, recordData: rekod})}}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Lihat Rekod"
+                              >
+                                <Eye size={16} />
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setRecordModalConfig({isOpen: true, mode: 'edit', taskId: task.id, recordData: rekod})}}
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" title="Sunting Rekod"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            </div>
+                            
+                            {/* File Indicators */}
+                            {rekod.files && rekod.files.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <div className="flex -space-x-2">
+                                  {rekod.files.map((f, i) => (
+                                    <div key={i} className="w-7 h-7 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-500 tooltip relative group/tt">
+                                      {f.name.match(/\.(jpeg|jpg|png)$/i) ? <ImageIcon size={12} /> : <FileIcon size={12} />}
+                                      <div className="absolute bottom-full mb-2 hidden group-hover/tt:block bg-slate-800 text-white text-xs p-1.5 rounded whitespace-nowrap z-10 shadow-lg">
+                                        {f.name}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Drive</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // --- MODALS ---
+  const TaskModal = () => {
+    const [nama, setNama] = useState('');
+    const [tarikh, setTarikh] = useState('');
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const newTask = {
+        id: `T${Date.now()}`,
+        namaTugasan: nama,
+        tarikh: tarikh,
+        rekod: []
+      };
+      setTasks([newTask, ...tasks]);
+      setExpandedTasks([...expandedTasks, newTask.id]);
+      setIsTaskModalOpen(false);
+    };
+
+    if (!isTaskModalOpen) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm animate-in fade-in">
+        <div className="bg-white/95 backdrop-blur-xl border border-white rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+          <button onClick={() => setIsTaskModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-1 rounded-full transition-colors">
+            <X size={18} />
+          </button>
+          <h3 className="text-xl font-bold text-slate-800 mb-6">Cipta Tugasan Baru</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Nama Tugasan</label>
+              <input required type="text" value={nama} onChange={e => setNama(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-inner"
+                placeholder="Cth: Siasatan Zon Timur" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Tarikh Tugasan</label>
+              <input required type="date" value={tarikh} onChange={e => setTarikh(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-inner" />
+            </div>
+            <button type="submit" className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-200">
+              Simpan Tugasan
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  const RecordModal = () => {
+    const { isOpen, mode, taskId, recordData } = recordModalConfig;
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    const [formData, setFormData] = useState({
+      tarikhSiasatan: '', namaPemohon: '', idRujukan: '', alamat: '', status: 'Dalam proses', statusRumah: 'Tiada', catatan: ''
+    });
+    const [files, setFiles] = useState([]);
+    const [uploading, setUploading] = useState(false);
+    const isReadOnly = mode === 'view';
 
-    <style>
-        /* 
-         * PREMIUM GLASS UI STYLES
-         */
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-            color: #e2e8f0;
-            margin: 0;
-            overflow-x: hidden;
-            background-attachment: fixed;
+    // Populate data jika mode 'edit' atau 'view'
+    useEffect(() => {
+      if (isOpen && (mode === 'edit' || mode === 'view') && recordData) {
+        setFormData({
+          tarikhSiasatan: recordData.tarikhSiasatan,
+          namaPemohon: recordData.namaPemohon,
+          idRujukan: recordData.idRujukan,
+          alamat: recordData.alamat,
+          status: recordData.status,
+          statusRumah: recordData.statusRumah,
+          catatan: recordData.catatan || ''
+        });
+        setFiles(recordData.files || []);
+      } else if (isOpen && mode === 'create') {
+        // Reset form for create
+        setFormData({
+          tarikhSiasatan: '', namaPemohon: '', idRujukan: '', alamat: '', status: 'Dalam proses', statusRumah: 'Tiada', catatan: ''
+        });
+        setFiles([]);
+      }
+    }, [isOpen, mode, recordData]);
+
+    const handleFileChange = (e) => {
+      if (isReadOnly) return;
+      
+      const selectedFiles = Array.from(e.target.files);
+      const validFiles = [];
+      
+      if (files.length + selectedFiles.length > 5) {
+        alert("Maksimum 5 fail dibenarkan.");
+        return;
+      }
+
+      for (let file of selectedFiles) {
+        if (file.size > 15 * 1024 * 1024) {
+          alert(`Fail ${file.name} melebihi 15MB.`);
+          continue;
         }
+        validFiles.push(file);
+      }
+      setFiles([...files, ...validFiles].slice(0, 5));
+    };
 
-        /* Decorative background blobs */
-        body::before, body::after {
-            content: '';
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(100px);
-            z-index: -1;
-            opacity: 0.4;
-        }
-        body::before { background: #38bdf8; width: 400px; height: 400px; top: -100px; left: -100px; }
-        body::after { background: #a855f7; width: 500px; height: 500px; bottom: -200px; right: -100px; }
+    const removeFile = (index) => {
+      if (isReadOnly) return;
+      setFiles(files.filter((_, i) => i !== index));
+    };
 
-        /* The Core Glass Class */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        .glass-header {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
+    const closeModal = () => {
+      setRecordModalConfig({ ...recordModalConfig, isOpen: false });
+    };
 
-        .glass-input {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-            transition: all 0.3s ease;
-        }
-        .glass-input:focus {
-            background: rgba(0, 0, 0, 0.4);
-            border-color: #38bdf8;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-        }
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (isReadOnly) {
+        closeModal();
+        return;
+      }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
-
-        /* Dashboard Card Hover */
-        .dash-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        .dash-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-
-        /* Status Colors */
-        .status-selesai { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .status-proses { background: rgba(14, 165, 233, 0.15); color: #7dd3fc; border: 1px solid rgba(14, 165, 233, 0.3); }
-        .status-kiv { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
-        .status-risiko { background: rgba(225, 29, 72, 0.15); color: #fda4af; border: 1px solid rgba(225, 29, 72, 0.3); }
-        
-        /* Task Completed Color (Light Green tint for whole card) */
-        .task-completed-bg {
-            background: rgba(16, 185, 129, 0.05) !important;
-            border-color: rgba(16, 185, 129, 0.2) !important;
-        }
-
-        /* Active Navigation */
-        .nav-active {
-            background: rgba(255, 255, 255, 0.1);
-            border-left: 3px solid #38bdf8;
-            color: #fff;
-        }
-        
-        /* Hide sections */
-        .section-hidden { display: none; }
-    </style>
-</head>
-<body class="flex h-screen">
-
-    <!-- SIDEBAR -->
-    <aside class="w-64 glass-panel flex flex-col h-full border-r border-t-0 border-b-0 border-l-0 z-20 shrink-0 hidden md:flex">
-        <div class="h-20 flex items-center px-6 border-b border-white/5">
-            <img src="https://lh3.googleusercontent.com/d/1iMly4_2_oQQBHcGA4XSWAeUuVFBEApup" alt="Logo" class="w-10 h-10 object-contain mr-3 rounded-lg bg-white/10 p-1" onerror="this.src='https://placehold.co/40x40/0f172a/ffffff?text=E2U'">
-            <span class="text-xl font-bold tracking-wider text-white">ESiasat2U</span>
-        </div>
-        
-        <nav class="flex-1 py-6 px-3 space-y-2">
-            <a href="#" onclick="showSection('dashboard', this)" class="nav-item nav-active flex items-center px-4 py-3 text-sm font-medium rounded-lg text-slate-300 hover:bg-white/5 hover:text-white transition">
-                <i class="fa-solid fa-chart-pie w-6"></i> Papan Pemuka
-            </a>
-            <a href="#" onclick="showSection('lapangan', this)" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg text-slate-300 hover:bg-white/5 hover:text-white transition">
-                <i class="fa-solid fa-map-location-dot w-6"></i> Siasatan Lapangan
-            </a>
-            <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg text-slate-300 hover:bg-white/5 hover:text-white transition">
-                <i class="fa-solid fa-folder-open w-6"></i> Arkib Siasatan
-            </a>
-            <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg text-slate-300 hover:bg-white/5 hover:text-white transition">
-                <i class="fa-solid fa-gear w-6"></i> Tetapan
-            </a>
-        </nav>
-        
-        <div class="p-4 border-t border-white/5">
-            <div class="flex items-center p-3 glass-panel rounded-xl">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                    A
-                </div>
-                <div class="ml-3">
-                    <p class="text-xs font-semibold text-white">Admin</p>
-                    <p class="text-[10px] text-slate-400">admin@esiasat.com</p>
-                </div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- MAIN CONTENT AREA -->
-    <div class="flex-1 flex flex-col h-full overflow-hidden relative">
-        
-        <!-- HEADER (GLOBAL SEARCH) -->
-        <header class="h-20 glass-header flex items-center justify-between px-6 lg:px-10 z-10">
-            <div class="flex items-center">
-                <button class="md:hidden text-slate-300 hover:text-white mr-4">
-                    <i class="fa-solid fa-bars text-xl"></i>
-                </button>
-                <h1 id="pageTitle" class="text-xl font-semibold text-white hidden sm:block">Papan Pemuka Utama</h1>
-            </div>
-            
-            <div class="flex items-center gap-6">
-                <!-- Global Search -->
-                <div class="relative hidden md:block">
-                    <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
-                    <input type="text" placeholder="Cari pemohon, ID, lokasi..." class="glass-input pl-10 pr-4 py-2 w-72 rounded-full text-sm">
-                </div>
-                
-                <button class="relative text-slate-300 hover:text-white transition">
-                    <i class="fa-regular fa-bell text-lg"></i>
-                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-slate-900"></span>
-                </button>
-            </div>
-        </header>
-
-        <!-- CONTENT VIEWS -->
-        <main class="flex-1 overflow-y-auto p-6 lg:p-10 z-0">
-            
-            <!-- VIEW 1: DASHBOARD -->
-            <div id="section-dashboard" class="space-y-8">
-                <!-- Dashboard Metrics -->
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    
-                    <div class="glass-panel rounded-2xl p-6 dash-card border-t-4 border-t-blue-400" onclick="filterDashboard('JumlahSiasatan', 'Semua Tugasan')">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p class="text-slate-400 text-sm font-medium">Jumlah Keseluruhan</p>
-                                <h3 class="text-3xl font-bold text-white mt-1">1,284</h3>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                <i class="fa-solid fa-layer-group text-xl"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500">Jumlah siasatan direkod sistem</p>
-                    </div>
-
-                    <div class="glass-panel rounded-2xl p-6 dash-card border-t-4 border-t-emerald-400" onclick="filterDashboard('Selesai', 'Siasatan Selesai')">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p class="text-slate-400 text-sm font-medium">Selesai Disiasat</p>
-                                <h3 class="text-3xl font-bold text-white mt-1">942</h3>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                <i class="fa-solid fa-check-double text-xl"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-emerald-400/80"><i class="fa-brands fa-google-drive"></i> Fail dimuatnaik ke Drive</p>
-                    </div>
-
-                    <div class="glass-panel rounded-2xl p-6 dash-card border-t-4 border-t-amber-400" onclick="filterDashboard('KIV', 'Status KIV (Tangguh)')">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p class="text-slate-400 text-sm font-medium">Status KIV</p>
-                                <h3 class="text-3xl font-bold text-white mt-1">87</h3>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
-                                <i class="fa-solid fa-clock-rotate-left text-xl"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500">Tangguh dokumen / lawatan</p>
-                    </div>
-
-                    <div class="glass-panel rounded-2xl p-6 dash-card border-t-4 border-t-rose-500" onclick="filterDashboard('Risiko', 'Rumah Berisiko')">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p class="text-slate-400 text-sm font-medium">Rumah Berisiko</p>
-                                <h3 class="text-3xl font-bold text-rose-400 mt-1">32</h3>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400">
-                                <i class="fa-solid fa-house-circle-exclamation text-xl"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500">Kosong, asnaf tiada, tidak wujud</p>
-                    </div>
-                </div>
-
-                <!-- Dynamic List (Appears when metric clicked) -->
-                <div id="dashboard-list-container" class="glass-panel rounded-2xl p-6 section-hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 id="dashboard-list-title" class="text-lg font-semibold text-white">Senarai</h3>
-                        <button onclick="closeDashboardList()" class="text-slate-400 hover:text-white">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-white/10 text-slate-400 text-sm">
-                                    <th class="py-3 px-4 font-medium">ID Rujukan</th>
-                                    <th class="py-3 px-4 font-medium">Nama Pemohon</th>
-                                    <th class="py-3 px-4 font-medium">Lokasi</th>
-                                    <th class="py-3 px-4 font-medium">Kategori</th>
-                                    <th class="py-3 px-4 font-medium">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dashboard-table-body" class="text-sm">
-                                <!-- Populated via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Quick Info Panel -->
-                <div class="glass-panel rounded-2xl p-6 bg-[url('https://placehold.co/1000x300/1e1b4b/38bdf8?text=')] bg-cover bg-center border-none relative overflow-hidden">
-                    <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-0"></div>
-                    <div class="relative z-10 flex flex-col md:flex-row items-center justify-between">
-                        <div>
-                            <h3 class="text-xl font-bold text-white mb-2"><i class="fa-brands fa-google-drive text-blue-400 mr-2"></i> Integrasi Google Drive Aktif</h3>
-                            <p class="text-slate-300 text-sm max-w-lg">Sistem ini memuat naik gambar dan dokumen siasatan terus ke dalam folder berpusat Google Drive. Had fail ialah 15MB setiap satu (PNG, JPEG, PDF, Words).</p>
-                        </div>
-                        <button onclick="showSection('lapangan', document.querySelectorAll('.nav-item')[1])" class="mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg font-medium shadow-lg transition">
-                            Mulakan Siasatan <i class="fa-solid fa-arrow-right ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- VIEW 2: SIASATAN LAPANGAN (Tasks & Sub-tasks) -->
-            <div id="section-lapangan" class="section-hidden space-y-6">
-                
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">Siasatan Lapangan</h2>
-                        <p class="text-slate-400 text-sm mt-1">Urus tugasan operasi dan rekod rumah ke rumah.</p>
-                    </div>
-                    <button onclick="openTaskModal()" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg font-medium transition flex items-center">
-                        <i class="fa-solid fa-plus text-blue-400 mr-2"></i> Cipta Tugasan (Task)
-                    </button>
-                </div>
-
-                <!-- Task List Container -->
-                <div id="taskListContainer" class="space-y-6">
-                    <!-- Tasks will be appended here by JS -->
-                </div>
-                
-                <!-- Empty State -->
-                <div id="emptyTaskState" class="glass-panel rounded-2xl p-12 text-center">
-                    <i class="fa-solid fa-map-location-dot text-6xl text-slate-600 mb-4"></i>
-                    <h3 class="text-lg font-medium text-white mb-2">Tiada Tugasan Aktif</h3>
-                    <p class="text-slate-400 text-sm mb-6">Sila cipta tugasan utama sebelum memulakan rekod siasatan.</p>
-                    <button onclick="openTaskModal()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition">
-                        Cipta Tugasan Baharu
-                    </button>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- ==============================================
-         MODALS (POP-UPS)
-         ============================================== -->
-
-    <!-- 1. Modal: Create MAIN TASK -->
-    <div id="modal-task" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 section-hidden">
-        <div class="glass-panel bg-slate-900/90 w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="modal-task-content">
-            
-            <div class="px-6 py-4 border-b border-white/10 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-white">Tugasan Baharu</h3>
-                <button onclick="closeModal('modal-task', 'modal-task-content')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            
-            <form onsubmit="submitTask(event)" class="p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Nama Tugasan / Kawasan *</label>
-                        <input type="text" id="taskName" required placeholder="Contoh: Operasi PPR Lembah Subang" class="glass-input w-full px-4 py-2.5 rounded-lg text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Tarikh Mula Operasi *</label>
-                        <input type="date" id="taskDate" required class="glass-input w-full px-4 py-2.5 rounded-lg text-sm [color-scheme:dark]">
-                    </div>
-                </div>
-                
-                <div class="mt-8 flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('modal-task', 'modal-task-content')" class="px-4 py-2 text-sm text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition">Batal</button>
-                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition font-medium">Cipta Tugasan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-
-    <!-- 2. Modal: Create SUB-TASK (Rekod Siasatan Form) -->
-    <div id="modal-subtask" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 section-hidden overflow-y-auto">
-        <div class="glass-panel bg-slate-900/95 w-full max-w-2xl rounded-2xl border border-slate-700 shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300 my-8" id="modal-subtask-content">
-            
-            <div class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-file-pen text-blue-400 mr-2"></i> Borang Rekod Siasatan</h3>
-                <button onclick="closeModal('modal-subtask', 'modal-subtask-content')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            
-            <form id="form-rekod" onsubmit="submitRekod(event)" class="p-6">
-                <!-- Hidden field to know which Task this belongs to -->
-                <input type="hidden" id="parentTaskId" value="">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Tarikh Siasatan</label>
-                        <input type="date" id="rekodDate" required class="glass-input w-full px-4 py-2 rounded-lg text-sm [color-scheme:dark]">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">ID Rujukan</label>
-                        <input type="text" id="rekodID" required placeholder="Contoh: REF-1029" class="glass-input w-full px-4 py-2 rounded-lg text-sm">
-                    </div>
-                </div>
-
-                <div class="mb-5">
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Nama Pemohon</label>
-                    <input type="text" id="rekodName" required placeholder="Nama penuh pemohon..." class="glass-input w-full px-4 py-2 rounded-lg text-sm">
-                </div>
-
-                <div class="mb-5">
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Alamat / Lokasi Siasatan</label>
-                    <textarea id="rekodAddress" required rows="2" placeholder="Alamat penuh..." class="glass-input w-full px-4 py-2 rounded-lg text-sm resize-y"></textarea>
-                </div>
-
-                <div class="mb-5">
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Status Siasatan</label>
-                    <!-- Custom styled select -->
-                    <select id="rekodStatus" required class="glass-input w-full px-4 py-2.5 rounded-lg text-sm [color-scheme:dark] appearance-none cursor-pointer" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem top 50%; background-size: 0.65rem auto;">
-                        <option value="Dalam Proses">Dalam Proses (Sedang disemak)</option>
-                        <option value="KIV">KIV (Tangguh / Dokumen tak lengkap)</option>
-                        <option value="Risiko Kosong">Risiko: Rumah Kosong / Tidak wujud</option>
-                        <option value="Selesai">Selesai (Siap)</option>
-                    </select>
-                </div>
-
-                <div class="mb-5 border border-white/10 rounded-lg p-4 bg-black/20">
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Muat Naik Fail (Maks: 5) <i class="fa-brands fa-google-drive text-blue-400 ml-1"></i></label>
-                    <p class="text-xs text-slate-500 mb-3">Format: PNG, JPEG, PDF, DOCX (Max 15MB/fail). Fail akan terus disimpan ke Google Drive khusus.</p>
-                    
-                    <div class="flex items-center justify-center w-full">
-                        <label for="rekodFiles" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:bg-white/5 transition hover:border-slate-400">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
-                                <p class="text-sm text-slate-400"><span class="font-semibold text-blue-400">Klik untuk muat naik</span></p>
-                            </div>
-                            <input id="rekodFiles" type="file" class="hidden" multiple accept=".png, .jpg, .jpeg, .pdf, .doc, .docx" onchange="handleFileSelect(event)" />
-                        </label>
-                    </div>
-                    <!-- Selected files preview list -->
-                    <ul id="fileListPreview" class="mt-3 space-y-2 text-sm text-slate-300"></ul>
-                </div>
-
-                <div class="mb-5">
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Catatan Tambahan</label>
-                    <textarea id="rekodCatatan" rows="3" placeholder="Nota pemerhatian siasatan..." class="glass-input w-full px-4 py-2 rounded-lg text-sm resize-y"></textarea>
-                </div>
-
-                <div class="mt-8 pt-5 border-t border-white/10 flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('modal-subtask', 'modal-subtask-content')" class="px-5 py-2 text-sm text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition">Batal</button>
-                    <button type="submit" id="btnSimpanRekod" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition font-medium flex items-center">
-                        <i class="fa-solid fa-save mr-2"></i> Simpan & Hantar ke Drive
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-
-    <!-- ==============================================
-         JAVASCRIPT LOGIC
-         ============================================== -->
-    <script>
-        // --- 1. NAVIGATION & LAYOUT LOGIC ---
-        function showSection(sectionId, navElement) {
-            // Hide all sections safely checking existence
-            const dash = document.getElementById('section-dashboard');
-            const lapang = document.getElementById('section-lapangan');
-            if (dash) dash.classList.add('section-hidden');
-            if (lapang) lapang.classList.add('section-hidden');
-            
-            // Show targeted section
-            const targetSection = document.getElementById('section-' + sectionId);
-            if(targetSection) targetSection.classList.remove('section-hidden');
-            
-            // Update Title
-            const titles = {
-                'dashboard': 'Papan Pemuka Utama',
-                'lapangan': 'Modul Siasatan Lapangan'
-            };
-            const titleEl = document.getElementById('pageTitle');
-            if(titleEl) titleEl.innerText = titles[sectionId];
-            
-            // Update Active Nav Style
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('nav-active', 'border-l-3', 'border-blue-400');
-                el.classList.add('text-slate-300');
-            });
-            if (navElement) {
-                 navElement.classList.remove('text-slate-300');
-                 navElement.classList.add('nav-active');
-            }
-            
-            // Hide dashboard list if navigating away
-            if(sectionId !== 'dashboard') closeDashboardList();
-        }
-
-        // --- 2. MODAL LOGIC ---
-        function openModal(modalId, contentId) {
-            const modal = document.getElementById(modalId);
-            const content = document.getElementById(contentId);
-            if(!modal || !content) return;
-            
-            modal.classList.remove('section-hidden');
-            // Slight delay for CSS transition
-            setTimeout(() => {
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        }
-
-        function closeModal(modalId, contentId) {
-            const modal = document.getElementById(modalId);
-            const content = document.getElementById(contentId);
-            if(!modal || !content) return;
-
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('section-hidden');
-            }, 300);
-        }
-
-        function openTaskModal() {
-            const taskDateInput = document.getElementById('taskDate');
-            if(taskDateInput) taskDateInput.valueAsDate = new Date();
-            openModal('modal-task', 'modal-task-content');
-        }
-
-        function openSubtaskModal(taskId) {
-            document.getElementById('parentTaskId').value = taskId;
-            document.getElementById('form-rekod').reset();
-            const rekodDateInput = document.getElementById('rekodDate');
-            if(rekodDateInput) rekodDateInput.valueAsDate = new Date();
-            document.getElementById('fileListPreview').innerHTML = '';
-            
-            // Reset actual file input element to clear previous selections
-            const fileInput = document.getElementById('rekodFiles');
-            if(fileInput) fileInput.value = ''; 
-            selectedFiles = [];
-            openModal('modal-subtask', 'modal-subtask-content');
-        }
-
-
-        // --- 3. DATA MANAGEMENT (Simulation via Local Variables) ---
-        // In a real app, this data would come from a backend/database
-        let tasks = [];
-        let subtasks = []; // Array of records linked to tasks
-
-        // --- TASK LOGIC ---
-        function submitTask(e) {
-            e.preventDefault();
-            const name = document.getElementById('taskName').value;
-            const date = document.getElementById('taskDate').value;
-            
-            const newTask = {
-                id: 'T' + Date.now(),
-                name: name,
-                date: date,
-                isCompleted: false
-            };
-            
-            tasks.unshift(newTask); // Add to top
-            renderTasks();
-            closeModal('modal-task', 'modal-task-content');
-            
-            // Reset fields
-            document.getElementById('taskName').value = '';
-            document.getElementById('taskDate').value = '';
-        }
-
-        function renderTasks() {
-            const container = document.getElementById('taskListContainer');
-            const emptyState = document.getElementById('emptyTaskState');
-            
-            if (!container || !emptyState) return;
-
-            if (tasks.length === 0) {
-                container.innerHTML = '';
-                emptyState.classList.remove('section-hidden');
-                return;
-            }
-            
-            emptyState.classList.add('section-hidden');
-            container.innerHTML = '';
-
-            tasks.forEach(task => {
-                // Find subtasks for this task
-                const taskRecords = subtasks.filter(st => st.taskId === task.id);
-                
-                // Check if ALL records inside this task are 'Selesai' (min 1 record needed to auto-complete)
-                let isAllSelesai = false;
-                if (taskRecords.length > 0) {
-                    const totalSelesai = taskRecords.filter(st => st.status === 'Selesai').length;
-                    isAllSelesai = (totalSelesai === taskRecords.length);
-                }
-                
-                // Set CSS class for completed task
-                const taskCardClass = isAllSelesai ? 'task-completed-bg' : '';
-                const titleIconColor = isAllSelesai ? 'text-emerald-400' : 'text-blue-400';
-                const titleIcon = isAllSelesai ? 'fa-circle-check' : 'fa-folder-open';
-
-                let html = `
-                <div class="glass-panel rounded-2xl border border-white/10 overflow-hidden ${taskCardClass}">
-                    <!-- Task Header -->
-                    <div class="bg-white/5 px-6 py-4 flex justify-between items-center border-b border-white/5">
-                        <div class="flex items-center gap-3">
-                            <i class="fa-solid ${titleIcon} ${titleIconColor} text-xl"></i>
-                            <div>
-                                <h3 class="text-lg font-semibold text-white">${task.name}</h3>
-                                <p class="text-xs text-slate-400">Tarikh: ${task.date} | ID: ${task.id}</p>
-                            </div>
-                        </div>
-                        <button onclick="openSubtaskModal('${task.id}')" class="px-4 py-2 bg-blue-600/80 hover:bg-blue-600 text-white text-sm rounded-lg transition border border-blue-500/50">
-                            <i class="fa-solid fa-plus text-xs mr-1"></i> Rekod Siasatan
-                        </button>
-                    </div>
-                    
-                    <!-- Sub-tasks (Records) List -->
-                    <div class="p-6">
-                        ${taskRecords.length === 0 ? '<p class="text-sm text-slate-500 italic text-center py-4">Belum ada rekod. Klik butang Rekod Siasatan untuk tambah.</p>' : generateSubtaskList(taskRecords)}
-                    </div>
-                </div>
-                `;
-                container.innerHTML += html;
-            });
-        }
-
-        // Helper to generate HTML for subtasks
-        function generateSubtaskList(records) {
-            let html = '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">';
-            
-            records.forEach(rec => {
-                // Determine Badge styling based on status
-                let badgeClass = '';
-                let statusLabel = rec.status;
-                
-                if(rec.status === 'Selesai') badgeClass = 'status-selesai';
-                else if(rec.status === 'Dalam Proses') badgeClass = 'status-proses';
-                else if(rec.status === 'KIV') badgeClass = 'status-kiv';
-                else if(rec.status.includes('Risiko Kosong')) { 
-                    badgeClass = 'status-risiko';
-                    statusLabel = 'Risiko'; // Shorten label for badge
-                }
-
-                html += `
-                <div class="bg-black/20 border border-white/5 rounded-xl p-4 hover:border-white/20 transition flex gap-4 items-start relative group">
-                    
-                    <div class="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 shrink-0">
-                        <i class="fa-solid fa-file-lines text-xl"></i>
-                    </div>
-                    
-                    <div class="flex-1 min-w-0 max-w-full">
-                        <div class="flex justify-between items-start mb-1 gap-2">
-                            <h4 class="font-medium text-white text-sm truncate" title="${rec.pemohon}">${rec.pemohon}</h4>
-                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass} shrink-0">${statusLabel}</span>
-                        </div>
-                        <p class="text-xs text-slate-400 mb-1"><i class="fa-solid fa-fingerprint w-3"></i> ${rec.refId}</p>
-                        <p class="text-xs text-slate-400 truncate" title="${rec.alamat}"><i class="fa-solid fa-location-dot w-3"></i> ${rec.alamat}</p>
-                        
-                        ${rec.fileCount > 0 ? `<div class="mt-2 text-[10px] text-emerald-400/80"><i class="fa-brands fa-google-drive"></i> ${rec.fileCount} fail dimuat naik</div>` : ''}
-                    </div>
-                </div>
-                `;
-            });
-            html += '</div>';
-            return html;
-        }
-
-
-        // --- SUB-TASK / REKOD LOGIC ---
-        let selectedFiles = []; // Temporary hold files
-
-        function handleFileSelect(e) {
-            const files = Array.from(e.target.files);
-            const list = document.getElementById('fileListPreview');
-            if(!list) return;
-
-            // Logic to restrict max 5 files
-            if(selectedFiles.length + files.length > 5) {
-                showCustomAlert("Maksimum 5 fail sahaja dibenarkan.");
-                return;
-            }
-
-            files.forEach(f => {
-                // Logic to restrict size (simulated 15MB limit check)
-                if(f.size > 15 * 1024 * 1024) {
-                    showCustomAlert(`Fail ${f.name} melebihi 15MB.`);
-                    return;
-                }
-                selectedFiles.push(f);
-                list.innerHTML += `<li class="flex items-center text-slate-300 bg-white/5 p-2 rounded"><i class="fa-solid fa-paperclip text-slate-500 mr-2"></i> <span class="truncate w-full">${f.name}</span></li>`;
-            });
-        }
-
-        function submitRekod(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnSimpanRekod');
-            if(!btn) return;
-            const originalText = btn.innerHTML;
-            
-            // Visual feedback for Drive Upload simulation
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan ke Drive...';
-            btn.disabled = true;
-            btn.classList.add('opacity-70');
-
-            // Collect data
-            const taskId = document.getElementById('parentTaskId').value;
-            const newRecord = {
-                id: 'R' + Date.now(),
-                taskId: taskId,
-                tarikh: document.getElementById('rekodDate').value,
-                refId: document.getElementById('rekodID').value,
-                pemohon: document.getElementById('rekodName').value,
-                alamat: document.getElementById('rekodAddress').value,
-                status: document.getElementById('rekodStatus').value,
-                catatan: document.getElementById('rekodCatatan').value,
-                fileCount: selectedFiles.length
-            };
-
-            // SIMULATION: Wait 1.5s to simulate network request to Google Apps Script
-            setTimeout(() => {
-                subtasks.unshift(newRecord); // Add to data store
-                renderTasks(); // Re-render the task list to show new record
-                
-                // Reset and close modal
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                btn.classList.remove('opacity-70');
-                closeModal('modal-subtask', 'modal-subtask-content');
-                
-                showCustomAlert(`Rekod berjaya disimpan!\n${selectedFiles.length} fail telah dihalakan ke folder Google Drive.`);
-            }, 1500);
-        }
-
-        // Custom alert function to replace native alert()
-        function showCustomAlert(message) {
-             const alertHtml = `
-             <div id="customAlertBox" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                <div class="glass-panel bg-slate-900/90 w-full max-w-sm rounded-2xl border border-blue-500/50 shadow-2xl p-6 text-center transform scale-100 transition-all">
-                    <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-400 text-3xl">
-                        <i class="fa-solid fa-info"></i>
-                    </div>
-                    <h3 class="text-lg font-semibold text-white mb-2">Makluman</h3>
-                    <p class="text-slate-300 text-sm mb-6 whitespace-pre-line">${message}</p>
-                    <button onclick="document.getElementById('customAlertBox').remove()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition w-full">Tutup</button>
-                </div>
-             </div>
-             `;
-             document.body.insertAdjacentHTML('beforeend', alertHtml);
-        }
-
-        // --- 4. DASHBOARD INTERACTION LOGIC ---
-        
-        // Mock data for dashboard lists based on category
-        const mockDashboardData = {
-            'JumlahSiasatan': [
-                {id: 'REF-2023-01', nama: 'Ahmad Albab', lokasi: 'PPR Lembah Subang', kat: 'Siasatan', status: 'Selesai'},
-                {id: 'REF-2023-02', nama: 'Siti Aminah', lokasi: 'Taman Sri Muda', kat: 'Siasatan', status: 'Dalam Proses'}
-            ],
-            'Selesai': [
-                 {id: 'REF-2023-01', nama: 'Ahmad Albab', lokasi: 'PPR Lembah Subang', kat: 'Bantuan Zakat', status: 'Selesai'},
-                 {id: 'REF-2023-08', nama: 'Rajoo A/L Muthu', lokasi: 'Kg Baru Subang', kat: 'Baiki Rumah', status: 'Selesai'}
-            ],
-            'KIV': [
-                 {id: 'REF-2023-05', nama: 'Fatimah Yasin', lokasi: 'Flat PKNS', kat: 'Dokumen', status: 'KIV'},
-            ],
-            'Risiko': [
-                 {id: 'REF-2023-09', nama: 'Tiada Penghuni', lokasi: 'Blok C, Flat Rimba', kat: 'Rumah Kosong', status: 'Risiko Kosong'},
-                 {id: 'REF-2023-11', nama: 'Waris (Bukan Asnaf)', lokasi: 'No 4, Jln Mewah', kat: 'Asnaf Tiada', status: 'Risiko Kosong'}
-            ]
+      setUploading(true);
+      
+        setTimeout(() => {
+        const finalRecord = {
+          id: mode === 'edit' ? recordData.id : `R${Date.now()}`,
+          ...formData,
+          files: files.map(f => (f instanceof File ? { name: f.name, size: f.size, url: URL.createObjectURL(f), type: f.type } : f))
         };
 
-        function filterDashboard(type, title) {
-            const listContainer = document.getElementById('dashboard-list-container');
-            const tbody = document.getElementById('dashboard-table-body');
-            const titleEl = document.getElementById('dashboard-list-title');
-            
-            if(!listContainer || !tbody || !titleEl) return;
-
-            titleEl.innerText = 'Senarai: ' + title;
-            tbody.innerHTML = '';
-            
-            const data = mockDashboardData[type] || [];
-            
-            if(data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-500 italic">Tiada rekod dijumpai.</td></tr>';
+        setTasks(tasks.map(task => {
+          if (task.id === taskId) {
+            if (mode === 'edit') {
+              return { ...task, rekod: task.rekod.map(r => r.id === finalRecord.id ? finalRecord : r) };
             } else {
-                data.forEach(item => {
-                    // Badge coloring
-                    let badgeClass = '';
-                    let statusLabel = item.status;
-                    if(item.status === 'Selesai') badgeClass = 'status-selesai';
-                    else if(item.status === 'Dalam Proses') badgeClass = 'status-proses';
-                    else if(item.status === 'KIV') badgeClass = 'status-kiv';
-                    else if(item.status.includes('Risiko')) { badgeClass = 'status-risiko'; statusLabel = 'Berisiko'; }
-
-                    tbody.innerHTML += `
-                        <tr class="border-b border-white/5 hover:bg-white/5 transition text-slate-300">
-                            <td class="py-3 px-4 font-mono text-xs text-white">${item.id}</td>
-                            <td class="py-3 px-4 font-medium">${item.nama}</td>
-                            <td class="py-3 px-4 text-slate-400">${item.lokasi}</td>
-                            <td class="py-3 px-4">${item.kat}</td>
-                            <td class="py-3 px-4"><span class="px-2 py-1 rounded text-xs ${badgeClass}">${statusLabel}</span></td>
-                        </tr>
-                    `;
-                });
+              return { ...task, rekod: [...task.rekod, finalRecord] };
             }
+          }
+          return task;
+        }));
+        
+        setUploading(false);
+        closeModal();
+      }, 1000); // Simulate API call
+    };
+
+    if (!isOpen) return null;
+
+    const modalTitle = mode === 'create' ? 'Rekod Siasatan Baru' : mode === 'edit' ? 'Sunting Rekod Siasatan' : 'Maklumat Rekod Siasatan';
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/30 backdrop-blur-sm animate-in fade-in">
+        {/* Kunci utama: max-h-[90vh] dan flex-col pada container modal */}
+        <div className="bg-white/95 backdrop-blur-2xl border border-white rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col max-h-[95vh] overflow-hidden">
+          
+          {/* Header Modal (Fixed) */}
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white/50 shrink-0">
+            <div>
+              <h3 className="text-2xl font-bold text-slate-800">{modalTitle}</h3>
+              {mode !== 'view' && (
+                <p className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mt-1">
+                  <UploadCloud size={14}/> Sinki Automatik ke Google Drive
+                </p>
+              )}
+            </div>
+            <button onClick={closeModal} className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors shrink-0">
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Form Content (Scrollable) */}
+          <div className="p-6 overflow-y-auto custom-scrollbar">
+            <form id="recordForm" onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Tarikh Siasatan</label>
+                  <input required type="date" value={formData.tarikhSiasatan} onChange={e => setFormData({...formData, tarikhSiasatan: e.target.value})} disabled={isReadOnly}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-70 disabled:bg-slate-100" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">ID Rujukan</label>
+                  <input required type="text" value={formData.idRujukan} onChange={e => setFormData({...formData, idRujukan: e.target.value})} disabled={isReadOnly}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-70 disabled:bg-slate-100" placeholder="Cth: K-1002" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Pemohon</label>
+                <input required type="text" value={formData.namaPemohon} onChange={e => setFormData({...formData, namaPemohon: e.target.value})} disabled={isReadOnly}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-70 disabled:bg-slate-100" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Alamat / Lokasi Siasatan</label>
+                <textarea required rows="2" value={formData.alamat} onChange={e => setFormData({...formData, alamat: e.target.value})} disabled={isReadOnly}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none resize-y transition-all disabled:opacity-70 disabled:bg-slate-100"></textarea>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-5 rounded-xl border border-slate-200/60 shadow-sm">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status Siasatan</label>
+                  <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} disabled={isReadOnly}
+                    className={`w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold transition-all disabled:opacity-90 disabled:appearance-none
+                      ${formData.status === 'Dalam proses' ? 'text-amber-600' : formData.status === 'KIV' ? 'text-pink-600' : 'text-emerald-600'}
+                    `}>
+                    <option value="Dalam proses" className="text-amber-600 font-semibold">Dalam proses</option>
+                    <option value="KIV" className="text-pink-600 font-semibold">KIV</option>
+                    <option value="Selesai" className="text-emerald-600 font-semibold">Selesai</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status Rumah (Risiko)</label>
+                  <select value={formData.statusRumah} onChange={e => setFormData({...formData, statusRumah: e.target.value})} disabled={isReadOnly}
+                    className="w-full bg-white border border-slate-200 rounded-xl p-3 text-slate-700 outline-none transition-all disabled:opacity-90 disabled:appearance-none font-semibold">
+                    <option value="Tiada">Tiada Isu (Normal)</option>
+                    <option value="Tidak wujud">Tidak wujud</option>
+                    <option value="Rumah kosong">Rumah kosong</option>
+                    <option value="Asnaf tidak duduk">Asnaf tidak duduk</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* File Upload Section */}
+              <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
+                <div className="flex justify-between items-center mb-3">
+                  <label className="block text-sm font-semibold text-slate-800">Dokumen / Gambar Sokongan</label>
+                  {!isReadOnly && <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-md">{files.length}/5 Fail</span>}
+                </div>
+                
+                {!isReadOnly && (
+                  <div className="relative mb-4">
+                    <input 
+                      type="file" multiple accept=".png,.jpeg,.jpg,.pdf,.doc,.docx"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      disabled={files.length >= 5}
+                    />
+                    <div className="border-2 border-dashed border-blue-300 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-white hover:bg-blue-50 transition-colors">
+                      <UploadCloud className="text-blue-500 mb-2" size={32} />
+                      <p className="text-sm font-semibold text-slate-700">Klik atau seret fail ke sini</p>
+                      <p className="text-xs text-slate-500 mt-1">Maks 15MB/fail (PNG, JPEG, PDF, DOC)</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* File Previews */}
+            {files.length > 0 ? (
+              <div className="space-y-2">
+                {files.map((file, i) => {
+                  const fileUrl = file.url || (file instanceof File ? URL.createObjectURL(file) : null);
+                  return (
+                  <div key={i} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="bg-blue-100 p-2 rounded-md">
+                        {file.name.match(/\.(jpeg|jpg|png)$/i) ? <ImageIcon size={16} className="text-blue-600 shrink-0" /> : <FileIcon size={16} className="text-blue-600 shrink-0" />}
+                      </div>
+                      {fileUrl ? (
+                        <a href={fileUrl} target="_blank" rel="noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate" title="Lihat Fail">
+                          {file.name}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium text-slate-700 truncate">{file.name}</span>
+                      )}
+                    </div>
+                    {!isReadOnly && (
+                      <button type="button" onClick={() => removeFile(i)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors">
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                )})}
+              </div>
+            ) : (
+              isReadOnly && <p className="text-sm text-slate-500 italic">Tiada fail dimuat naik.</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Tambahan</label>
+                <textarea rows="3" value={formData.catatan} onChange={e => setFormData({...formData, catatan: e.target.value})} disabled={isReadOnly}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none resize-y transition-all disabled:opacity-70 disabled:bg-slate-100" placeholder="Masukkan sebarang nota..."></textarea>
+              </div>
+            </form>
+          </div>
+
+          {/* Footer Modal (Fixed Button) */}
+          <div className="p-6 border-t border-slate-100 bg-white/80 shrink-0">
+            {isReadOnly ? (
+              <button type="button" onClick={closeModal} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl transition-all shadow-md">
+                Tutup Paparan
+              </button>
+            ) : (
+              <button form="recordForm" type="submit" disabled={uploading} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-200 flex items-center justify-center gap-2">
+                {uploading ? (
+                  <><div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div> Menyimpan...</>
+                ) : (
+                  mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Rekod & Muat Naik'
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f4f7fb] text-slate-800 font-sans selection:bg-blue-500/30 selection:text-blue-900 pb-20 relative">
+      {/* Premium Glassmorphism Background Elements (Light Mode) */}
+      <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-blue-300/30 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-teal-200/40 blur-[130px]"></div>
+        <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] rounded-full bg-indigo-200/30 blur-[100px]"></div>
+      </div>
+
+      {/* Custom Scrollbar Styling (Global) */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1;
+          border-radius: 20px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #94a3b8;
+        }
+      `}} />
+
+      <div className="relative z-10">
+        <header className="sticky top-0 z-40 w-full bg-white/70 backdrop-blur-xl border-b border-white shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img 
+                src="https://lh3.googleusercontent.com/d/1iMly4_2_oQQBHcGA4XSWAeUuVFBEApup" 
+                alt="Logo" 
+                className="h-14 w-auto object-contain drop-shadow-sm"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-slate-800 tracking-wide">i-Siasat <span className="font-light text-slate-500">Pro</span></h1>
+                <p className="text-xs text-slate-500 hidden sm:block">Sistem Pengurusan Rekod Bersepadu</p>
+              </div>
+            </div>
             
-            listContainer.classList.remove('section-hidden');
-            // Scroll down a bit to show the list
-            setTimeout(() => {
-                listContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }, 100);
-        }
+            <div className="flex-1 max-w-md mx-8 hidden md:block relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Carian ID, Nama Pemohon, Tugasan..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value && activeTab !== 'dashboard_list') {
+                    setActiveTab('dashboard_list');
+                  }
+                }}
+                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200/70 rounded-xl leading-5 bg-white/60 backdrop-blur-md text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all sm:text-sm shadow-inner"
+              />
+            </div>
 
-        function closeDashboardList() {
-            const list = document.getElementById('dashboard-list-container');
-            if(list) list.classList.add('section-hidden');
-        }
+            <nav className="flex gap-2">
+              <button 
+                onClick={() => { setActiveTab('dashboard'); setDashboardFilter(null); setSearchQuery(''); }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 border border-blue-500 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100/80 bg-transparent border border-transparent'}`}
+              >
+                Dashboard
+              </button>
+              <button 
+                onClick={() => { setActiveTab('siasatan'); setSearchQuery(''); }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'siasatan' ? 'bg-blue-600 border border-blue-500 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100/80 bg-transparent border border-transparent'}`}
+              >
+                Siasatan Lapangan
+              </button>
+            </nav>
+          </div>
+        </header>
+        
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'dashboard_list' && <FilteredRecordsList />}
+          {activeTab === 'siasatan' && <SiasatanLapangan />}
+        </main>
+      </div>
 
-    </script>
-</body>
-</html>
+      <TaskModal />
+      <RecordModal />
+    </div>
+  );
+}
