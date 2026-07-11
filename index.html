@@ -270,7 +270,51 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC) ---
+        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+        const firebaseConfig = JSON.parse(firebaseConfigStr);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'siasatan-pro-app';
+        
+        const app = Object.keys(firebaseConfig).length > 0 ? initializeApp(firebaseConfig) : null;
+        const auth = app ? getAuth(app) : null;
+        const db = app ? getFirestore(app) : null;
+        let currentUser = null;
+
+        if (auth) {
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+            initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) setupRealtimeListener();
+            });
+        }
+
+        function setupRealtimeListener() {
+            if (!currentUser || !db) return;
+            const tasksRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+            onSnapshot(tasksRef, (snapshot) => {
+                tasks = snapshot.docs.map(doc => doc.data());
+                // Susun tugasan mengikut ID terbaru (menurun) supaya sentiasa di atas
+                tasks.sort((a, b) => b.id.localeCompare(a.id));
+                renderApp();
+            }, (error) => {
+                console.error("Firestore error:", error);
+                showToast("Gagal menyambung ke pangkalan data", "error");
+            });
+        }
+
         // --- 1. SETUP PWA (NATIVE APP) ---
         const setupPWA = () => {
             const manifest = {
@@ -303,17 +347,12 @@
         let activeTab = 'dashboard';
         let dashboardFilter = null;
         let searchQuery = '';
-        let expandedTasks = ['T001'];
+        let expandedTasks = [];
         let currentRecordModalConfig = { isOpen: false, mode: 'create', taskId: null, recordId: null };
         let currentModalFiles = [];
         
-        let tasks = [{
-            id: 'T001', namaTugasan: 'Siasatan Bersepadu Zon Utara', tarikh: '2026-07-12',
-            rekod: [{
-                id: 'R001', tarikhSiasatan: '2026-07-12', namaPemohon: 'Ahmad bin Abu', idRujukan: 'K001-992', 
-                alamat: 'No 12, Jalan Indah', status: 'Dalam proses', statusRumah: 'Tiada', catatan: 'Tiada di rumah.', files: []
-            }]
-        }];
+        // Data kini kosong pada mulanya dan akan diisi oleh pangkalan data awan (Firebase) secara automatik
+        let tasks = [];
 
         // Favicon
         document.head.insertAdjacentHTML('beforeend', `<link rel="icon" href="https://lh3.googleusercontent.com/d/1iMly4_2_oQQBHcGA4XSWAeUuVFBEApup">`);
@@ -411,6 +450,7 @@
             lucide.createIcons();
         };
 
+        // KAWALAN PAPARAN
         const setTab = (tab) => { activeTab = tab; if(['dashboard','siasatan'].includes(tab)) searchQuery = ''; renderApp(); };
         const handleDashboardClick = (f) => { dashboardFilter = f; setTab('dashboard_list'); };
         const toggleTaskExpand = (id) => { expandedTasks = expandedTasks.includes(id) ? expandedTasks.filter(x => x !== id) : [...expandedTasks, id]; renderApp(); };
@@ -421,10 +461,23 @@
         const taskModal = document.getElementById('taskModal');
         const openTaskModal = () => { document.getElementById('taskForm').reset(); taskModal.classList.remove('hidden'); taskModal.classList.add('flex'); };
         const closeTaskModal = () => { taskModal.classList.add('hidden'); taskModal.classList.remove('flex'); };
-        document.getElementById('taskForm').addEventListener('submit', (e) => {
+        
+        document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = generateId('T'); tasks.unshift({ id, namaTugasan: document.getElementById('taskNameInput').value, tarikh: document.getElementById('taskDateInput').value, rekod: [] });
-            expandedTasks.push(id); closeTaskModal(); renderApp(); showToast('Tugasan dicipta!');
+            const id = generateId('T'); 
+            const newTask = { id, namaTugasan: document.getElementById('taskNameInput').value, tarikh: document.getElementById('taskDateInput').value, rekod: [] };
+            
+            // SIMPAN KE PANGKALAN DATA AWAN (FIRESTORE)
+            if (db && currentUser) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), newTask);
+            } else {
+                tasks.unshift(newTask); // Sandaran jika tiada internet/server
+            }
+            
+            expandedTasks.push(id); 
+            closeTaskModal(); 
+            if (!db) renderApp(); 
+            showToast('Tugasan dicipta!');
         });
 
         // Record Modal Logic
@@ -480,7 +533,18 @@
             lucide.createIcons();
         };
 
-        // --- 6. GOOGLE DRIVE UPLOAD LOGIC ---
+        // DEDAHKAN FUNGSI KE WINDOW (Penting agar butang di HTML dapat memanggil logik modul ini)
+        window.setTab = setTab;
+        window.handleDashboardClick = handleDashboardClick;
+        window.toggleTaskExpand = toggleTaskExpand;
+        window.openTaskModal = openTaskModal;
+        window.closeTaskModal = closeTaskModal;
+        window.openRecordModal = openRecordModal;
+        window.closeRecordModal = closeRecordModal;
+        window.updateSelectColor = updateSelectColor;
+        window.removeFile = removeFile;
+
+        // --- 6. GOOGLE DRIVE UPLOAD & FIRESTORE SAVE LOGIC ---
         const getBase64 = (file) => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -520,11 +584,24 @@
                 };
 
                 const taskIndex = tasks.findIndex(t => t.id === currentRecordModalConfig.taskId);
-                if (currentRecordModalConfig.mode === 'edit') tasks[taskIndex].rekod[tasks[taskIndex].rekod.findIndex(r => r.id === formData.id)] = formData;
-                else tasks[taskIndex].rekod.push(formData);
+                let updatedTask = JSON.parse(JSON.stringify(tasks[taskIndex])); // Salinan (Deep copy)
+
+                if (currentRecordModalConfig.mode === 'edit') {
+                    updatedTask.rekod[updatedTask.rekod.findIndex(r => r.id === formData.id)] = formData;
+                } else {
+                    updatedTask.rekod.push(formData);
+                }
+
+                // SIMPAN KEMASKINI KE PANGKALAN DATA AWAN (FIRESTORE)
+                if (db && currentUser) {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', updatedTask.id), updatedTask);
+                } else {
+                    tasks[taskIndex] = updatedTask;
+                }
 
                 showToast('Rekod & Fail berjaya disimpan!');
-                closeRecordModal(); renderApp();
+                closeRecordModal(); 
+                if (!db) renderApp();
             } catch (error) {
                 showToast('Ralat muat naik: ' + error.message, 'error');
             } finally {
