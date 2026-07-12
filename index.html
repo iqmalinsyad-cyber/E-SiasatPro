@@ -276,25 +276,25 @@
         import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC - FIREBASE) ---
-        //
-        // ----------------------------------------------------------------------
-        // LANGKAH PENTING: Gantikan nilai di dalam bracket {} di bawah dengan 
-        //                  konfigurasi Firebase anda yang sebenar.
-        // ----------------------------------------------------------------------
-        const myFirebaseConfig = {
-            // apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
-            // authDomain: "docuvault-system.firebaseapp.com",
-            // projectId: "docuvault-system",
-            // storageBucket: "docuvault-system.firebasestorage.app",
-            // messagingSenderId: "390300207503",
-            // appId: "1:390300207503:web:e0a642ce8e0e01df4e23fa"
-        };
-
-        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify(myFirebaseConfig);
-        const firebaseConfig = JSON.parse(firebaseConfigStr);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'siasatan-pro-app';
+        let firebaseConfig = {};
         
-        // Semak sama ada config dah dimasukkan
+        // Semak jika berada dalam persekitaran Canvas yang menyokong Firebase terbina
+        if (typeof __firebase_config !== 'undefined' && __firebase_config.length > 2) {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+            // JIKA anda 'host' fail ini sendiri di web luaran (tanpa Canvas),
+            // Sila masukkan konfigurasi Firebase anda di sini kelak.
+            firebaseConfig = {
+                // apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
+                // authDomain: "docuvault-system.firebaseapp.com",
+                // projectId: "docuvault-system",
+                // storageBucket: "docuvault-system.firebasestorage.app",
+                // messagingSenderId: "390300207503",
+                // appId: "1:390300207503:web:e0a642ce8e0e01df4e23fa"
+            };
+        }
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'siasatan-pro-app';
         const isFirebaseConfigured = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey;
         
         const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
