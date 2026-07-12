@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistem SiasatPro2u</title>
+    <title>SistemSiasatPro2u</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -37,7 +37,7 @@
                     <div class="flex items-center gap-3">
                         <img src="https://lh3.googleusercontent.com/d/1QZYvYe3-_2l2h6BsxDNx303JxpCCsFK9" alt="Logo" class="h-10 md:h-14 w-auto object-contain drop-shadow-sm" />
                         <div>
-                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide">Siasat <span class="font-light text-slate-500">Pro2U</span></h1>
+                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide"Siasat <span class="font-light text-slate-500">Pro2U</span></h1>
                         </div>
                     </div>
                 </div>
@@ -83,7 +83,7 @@
                     
                     <div onclick="handleDashboardClick('selesai')" class="cursor-pointer group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 border border-emerald-400/50 shadow-lg shadow-emerald-900/20 rounded-2xl p-6 hover:-translate-y-1 transition-transform">
                         <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-30 transition-opacity text-white"><i data-lucide="check-circle" style="width: 80px; height: 80px;"></i></div>
-                        <p class="text-emerald-100 text-sm font-semibold mb-1 relative z-10">Siasatan Selesai </p>
+                        <p class="text-emerald-100 text-sm font-semibold mb-1 relative z-10">Siasatan Selesai</p>
                         <h3 id="stat-selesai" class="text-5xl font-bold text-white relative z-10">0</h3>
                     </div>
                 </div>
@@ -270,10 +270,27 @@
         </div>
     </div>
 
+    <!-- MODAL: CONFIRMATION (CUSTOM ALERT) -->
+    <div id="confirmModal" class="fixed inset-0 z-[100] items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-all">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative animate-in zoom-in-95">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-red-100 p-2 rounded-full text-red-600">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <h3 id="confirmTitle" class="text-xl font-bold text-slate-800">Pasti?</h3>
+            </div>
+            <p id="confirmMessage" class="text-slate-600 mb-6 text-sm">Tindakan ini tidak boleh dipulihkan.</p>
+            <div class="flex gap-3 justify-end">
+                <button id="btnCancelConfirm" class="px-4 py-2.5 rounded-xl text-slate-600 font-semibold bg-slate-100 hover:bg-slate-200 transition-all text-sm">Batal</button>
+                <button id="btnProceedConfirm" class="px-4 py-2.5 rounded-xl text-white font-semibold bg-red-600 hover:bg-red-700 transition-all text-sm shadow-md shadow-red-200">Teruskan</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC - FIREBASE) ---
         
@@ -351,7 +368,7 @@
                 display: "standalone",
                 background_color: "#f4f7fb",
                 theme_color: "#2563eb",
-                icons: [{ src: "", sizes: "192x192", type: "image/png" }]
+                icons: [{ src: "https://lh3.googleusercontent.com/d/1QZYvYe3-_2l2h6BsxDNx303JxpCCsFK9", sizes: "192x192", type: "image/png" }]
             };
             const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
             document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(blob)}">`);
@@ -479,7 +496,10 @@
                     <div class="rounded-2xl border bg-white shadow-sm overflow-hidden">
                         <div class="p-4 sm:p-6 cursor-pointer flex justify-between items-center ${expandedTasks.includes(t.id) ? 'bg-slate-50 border-b border-slate-100' : ''}" onclick="toggleTaskExpand('${t.id}')">
                             <div><h3 class="font-bold text-slate-800">${t.namaTugasan}</h3><p class="text-xs sm:text-sm text-slate-500">Tarikh: ${t.tarikh} | Rekod: ${t.rekod.length}</p></div>
-                            <i data-lucide="${expandedTasks.includes(t.id) ? 'chevron-up' : 'chevron-down'}" class="text-slate-400"></i>
+                            <div class="flex items-center gap-3">
+                                <button onclick="event.stopPropagation(); deleteTask('${t.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Padam Tugasan"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                                <i data-lucide="${expandedTasks.includes(t.id) ? 'chevron-up' : 'chevron-down'}" class="text-slate-400"></i>
+                            </div>
                         </div>
                         ${expandedTasks.includes(t.id) ? `
                         <div class="p-4 sm:p-6">
@@ -491,8 +511,9 @@
                                         <p class="text-xs text-slate-500 truncate">${r.alamat}</p>
                                     </div>
                                     <div class="flex items-center gap-2 justify-end">
-                                        <button onclick="event.stopPropagation(); openRecordModal('view', '${t.id}', '${r.id}')" class="p-1.5 bg-slate-100 text-slate-600 rounded-md"><i data-lucide="eye" class="w-4 h-4"></i></button>
-                                        <button onclick="event.stopPropagation(); openRecordModal('edit', '${t.id}', '${r.id}')" class="p-1.5 bg-slate-100 text-slate-600 rounded-md"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                        <button onclick="event.stopPropagation(); openRecordModal('view', '${t.id}', '${r.id}')" class="p-1.5 bg-slate-100 text-slate-600 rounded-md hover:text-blue-600"><i data-lucide="eye" class="w-4 h-4"></i></button>
+                                        <button onclick="event.stopPropagation(); openRecordModal('edit', '${t.id}', '${r.id}')" class="p-1.5 bg-slate-100 text-slate-600 rounded-md hover:text-emerald-600"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                        <button onclick="event.stopPropagation(); deleteRecord('${t.id}', '${r.id}')" class="p-1.5 bg-slate-100 text-slate-600 rounded-md hover:text-red-600 hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -511,6 +532,26 @@
         document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; if(searchQuery && activeTab !== 'dashboard_list') setTab('dashboard_list'); else renderApp(); });
 
         // --- 5. MODALS & FORMS ---
+        let confirmActionCallback = null;
+        const showConfirm = (title, message, action) => {
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMessage').innerText = message;
+            confirmActionCallback = action;
+            const m = document.getElementById('confirmModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+            lucide.createIcons();
+        };
+        const closeConfirm = () => {
+            const m = document.getElementById('confirmModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            confirmActionCallback = null;
+        };
+        document.getElementById('btnCancelConfirm').onclick = closeConfirm;
+        document.getElementById('btnProceedConfirm').onclick = () => {
+            if(confirmActionCallback) confirmActionCallback();
+            closeConfirm();
+        };
+
         const taskModal = document.getElementById('taskModal');
         const openTaskModal = () => { document.getElementById('taskForm').reset(); taskModal.classList.remove('hidden'); taskModal.classList.add('flex'); };
         const closeTaskModal = () => { taskModal.classList.add('hidden'); taskModal.classList.remove('flex'); };
@@ -607,6 +648,47 @@
         window.closeRecordModal = closeRecordModal;
         window.updateSelectColor = updateSelectColor;
         window.removeFile = removeFile;
+
+        // FUNGSI PADAM (DELETE) TUGASAN & REKOD
+        const deleteTask = (taskId) => {
+            showConfirm("Padam Tugasan", "Tugasan ini beserta SEMUA rekod di dalamnya akan dipadam secara kekal. Teruskan?", async () => {
+                try {
+                    if (db && currentUser) {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId));
+                    } else {
+                        tasks = tasks.filter(t => t.id !== taskId);
+                        renderApp();
+                    }
+                    showToast('Tugasan berjaya dipadam.');
+                } catch (error) {
+                    showToast('Gagal memadam: ' + error.message, 'error');
+                }
+            });
+        };
+
+        const deleteRecord = (taskId, recordId) => {
+            showConfirm("Padam Rekod", "Rekod ini akan dipadam secara kekal. Teruskan?", async () => {
+                try {
+                    const taskIndex = tasks.findIndex(t => t.id === taskId);
+                    if (taskIndex === -1) return;
+                    let updatedTask = JSON.parse(JSON.stringify(tasks[taskIndex]));
+                    updatedTask.rekod = updatedTask.rekod.filter(r => r.id !== recordId);
+                    
+                    if (db && currentUser) {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), updatedTask);
+                    } else {
+                        tasks[taskIndex] = updatedTask;
+                        renderApp();
+                    }
+                    showToast('Rekod berjaya dipadam.');
+                } catch (error) {
+                    showToast('Gagal memadam: ' + error.message, 'error');
+                }
+            });
+        };
+
+        window.deleteTask = deleteTask;
+        window.deleteRecord = deleteRecord;
 
         // --- 6. GOOGLE DRIVE UPLOAD & FIRESTORE SAVE LOGIC ---
         const getBase64 = (file) => new Promise((resolve, reject) => {
