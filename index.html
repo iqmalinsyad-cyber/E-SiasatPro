@@ -276,22 +276,24 @@
         import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC - FIREBASE) ---
-        let firebaseConfig = {};
         
-        // Semak jika berada dalam persekitaran Canvas yang menyokong Firebase terbina
-        if (typeof __firebase_config !== 'undefined' && __firebase_config.length > 2) {
+        // 1. SILA MASUKKAN KOD FIREBASE ANDA DI DALAM KURUNGAN INI:
+        // (Buang tanda "//" di hadapan setiap kunci dan gantikan dengan kod sebenar)
+        const myFirebaseConfig = {
+            apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
+            authDomain: "docuvault-system.firebaseapp.com",
+            projectId: "docuvault-system",
+            storageBucket: "docuvault-system.firebasestorage.app",
+            messagingSenderId: "390300207503",
+            appId: "1:390300207503:web:e0a642ce8e0e01df4e23fa"
+        };
+        
+        let firebaseConfig = {};
+        // Logik Semakan Kunci Firebase yang telah diperkukuhkan (Guna kod user DAHULU)
+        if (myFirebaseConfig && Object.keys(myFirebaseConfig).length > 0 && myFirebaseConfig.apiKey) {
+            firebaseConfig = myFirebaseConfig;
+        } else if (typeof __firebase_config !== 'undefined' && __firebase_config.length > 2) {
             firebaseConfig = JSON.parse(__firebase_config);
-        } else {
-            // JIKA anda 'host' fail ini sendiri di web luaran (tanpa Canvas),
-            // Sila masukkan konfigurasi Firebase anda di sini kelak.
-            firebaseConfig = {
-                // apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
-                // authDomain: "docuvault-system.firebaseapp.com",
-                // projectId: "docuvault-system",
-                // storageBucket: "docuvault-system.firebasestorage.app",
-                // messagingSenderId: "390300207503",
-                // appId: "1:390300207503:web:e0a642ce8e0e01df4e23fa"
-            };
         }
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'siasatan-pro-app';
@@ -300,14 +302,22 @@
         const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
         const auth = app ? getAuth(app) : null;
         const db = app ? getFirestore(app) : null;
+        
         let currentUser = null;
+        let authError = null;
 
         if (auth) {
             const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                    authError = error.message;
+                    setTimeout(() => showToast("Ralat Firebase: Sila pastikan 'Anonymous Sign-In' diaktifkan.", "error"), 2000);
                 }
             };
             initAuth();
@@ -328,7 +338,7 @@
                 renderApp();
             }, (error) => {
                 console.error("Firestore error:", error);
-                showToast("Gagal menyambung ke pangkalan data", "error");
+                showToast("Ralat Pangkalan Data: Sila semak Firestore Rules anda", "error");
             });
         }
 
@@ -487,15 +497,24 @@
             // SIMPAN KE PANGKALAN DATA AWAN (FIRESTORE)
             if (db && currentUser) {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), newTask);
+                expandedTasks.push(id); 
+                closeTaskModal(); 
+                showToast('Tugasan dicipta!');
             } else {
-                tasks.unshift(newTask); // Sandaran jika tiada internet/server (hilang bila refresh)
-                showToast('Amaran: Database Firebase belum disambung. Data akan hilang bila refresh.', 'error');
+                tasks.unshift(newTask); // Sandaran sementara
+                expandedTasks.push(id); 
+                closeTaskModal(); 
+                renderApp(); 
+                
+                // Mesej ralat terperinci
+                if (!isFirebaseConfigured) {
+                    showToast('Amaran: Kunci Firebase tidak sah. Sila buang tanda "//" pada config API.', 'error');
+                } else if (authError) {
+                    showToast('Ralat Firebase: Sila aktifkan "Anonymous Auth" di console.', 'error');
+                } else if (!currentUser) {
+                    showToast('Sedang memuatkan server... Sila cuba sebentar lagi.', 'error');
+                }
             }
-            
-            expandedTasks.push(id); 
-            closeTaskModal(); 
-            if (!db) renderApp(); 
-            showToast('Tugasan dicipta!');
         });
 
         // Record Modal Logic
@@ -613,14 +632,15 @@
                 // SIMPAN KEMASKINI KE PANGKALAN DATA AWAN (FIRESTORE)
                 if (db && currentUser) {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', updatedTask.id), updatedTask);
+                    showToast('Rekod & Fail berjaya disimpan!');
+                    closeRecordModal();
                 } else {
                     tasks[taskIndex] = updatedTask;
-                    showToast('Amaran: Database Firebase belum disambung. Data akan hilang bila refresh.', 'error');
+                    showToast('Disimpan sementara: Pangkalan data Firebase masih belum sedia.', 'error');
+                    closeRecordModal();
+                    renderApp();
                 }
 
-                showToast('Rekod & Fail berjaya disimpan!');
-                closeRecordModal(); 
-                if (!db) renderApp();
             } catch (error) {
                 showToast('Ralat muat naik: ' + error.message, 'error');
             } finally {
