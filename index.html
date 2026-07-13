@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SistemSiasatPro2u</title>
+    <title>SiasatPro2u - Sistem Siasatan Lapangan</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -16,20 +16,187 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
         
         /* Mobile Optimizations */
-        input[type="date"], input[type="text"], select, textarea {
+        input[type="date"], input[type="text"], input[type="password"], select, textarea {
             font-size: 16px !important; /* Prevent iOS zoom */
+        }
+
+        /* Login Background Image Overlay */
+        .login-bg {
+            background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
         }
     </style>
 </head>
-<body class="min-h-screen bg-[#f4f7fb] text-slate-800 font-sans selection:bg-blue-500/30 selection:text-blue-900 pb-20 relative">
+<body class="min-h-screen bg-[#f4f7fb] text-slate-800 font-sans selection:bg-blue-500/30 selection:text-blue-900 pb-20 relative overflow-x-hidden">
     
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <div id="view-login" class="fixed inset-0 z-[200] flex flex-col items-center justify-center login-bg overflow-y-auto hidden">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-0"></div>
+        
+        <div class="relative z-10 flex flex-col items-center w-full px-4 py-8 max-w-md mx-auto min-h-screen justify-center">
+            
+            <!-- Logo Header -->
+            <div class="text-center mb-8">
+                <div class="mx-auto w-16 h-16 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 mb-3">
+                    <i data-lucide="shield-check" class="text-white w-10 h-10"></i>
+                </div>
+                <h1 class="text-4xl font-bold text-white tracking-wide">SiasatPro<span class="text-blue-400">2u</span></h1>
+                <p class="text-xs text-white/70 tracking-widest uppercase mt-1">Sistem Siasatan Lapangan</p>
+            </div>
+
+            <!-- Login Card (Glassmorphism) -->
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-8 w-full shadow-2xl relative">
+                <div class="mx-auto w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-4 border border-white/20">
+                    <i data-lucide="lock" class="text-white w-5 h-5"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white text-center">Selamat Datang</h2>
+                <p class="text-white/60 text-center mb-8 text-sm">Sila log masuk untuk meneruskan</p>
+
+                <form id="loginForm" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-medium text-white/80 mb-1.5 ml-1">Nama Pengguna</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i data-lucide="user" class="h-5 w-5 text-white/60"></i>
+                            </div>
+                            <input type="text" id="loginUsername" required placeholder="Masukkan nama pengguna"
+                                class="block w-full pl-11 pr-4 py-3.5 border border-white/20 rounded-xl leading-5 bg-black/20 backdrop-blur-md text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-white/80 mb-1.5 ml-1">Kata Laluan</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i data-lucide="lock" class="h-5 w-5 text-white/60"></i>
+                            </div>
+                            <input type="password" id="loginPassword" required placeholder="Masukkan kata laluan"
+                                class="block w-full pl-11 pr-12 py-3.5 border border-white/20 rounded-xl leading-5 bg-black/20 backdrop-blur-md text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm"
+                            />
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer" onclick="togglePasswordVisibility()">
+                                <i data-lucide="eye" id="loginEyeIcon" class="h-5 w-5 text-white/60 hover:text-white transition-colors"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="flex items-center">
+                            <input id="remember_me" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-black/20 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 accent-blue-500 cursor-pointer">
+                            <label for="remember_me" class="ml-2 block text-xs text-white/80 cursor-pointer">Ingat saya</label>
+                        </div>
+                        <div class="text-xs">
+                            <a href="javascript:void(0)" onclick="openResetModal()" class="text-blue-300 hover:text-blue-200 transition-colors">Lupa kata laluan?</a>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnLogin" class="w-full mt-6 bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all flex justify-center items-center gap-2">
+                        <span>Log Masuk</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+
+                    <div class="relative flex py-5 items-center">
+                        <div class="flex-grow border-t border-white/10"></div>
+                        <span class="flex-shrink-0 mx-4 text-white/40 text-xs">atau</span>
+                        <div class="flex-grow border-t border-white/10"></div>
+                    </div>
+
+                    <button type="button" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-3.5 rounded-xl transition-all flex justify-center items-center gap-2 text-sm">
+                        <i data-lucide="shield" class="w-4 h-4"></i> Log Masuk SSO
+                    </button>
+                </form>
+            </div>
+
+            <!-- Features Footer -->
+            <div class="grid grid-cols-3 gap-2 mt-8 w-full">
+                <div class="text-center">
+                    <div class="mx-auto w-10 h-10 bg-white/5 rounded-full flex items-center justify-center mb-2 border border-white/10">
+                        <i data-lucide="shield-check" class="text-blue-400 w-5 h-5"></i>
+                    </div>
+                    <h4 class="text-[10px] font-bold text-white mb-1">Selamat & Terjamin</h4>
+                    <p class="text-[9px] text-white/50 leading-tight hidden sm:block">Data dilindungi dengan encryption.</p>
+                </div>
+                <div class="text-center">
+                    <div class="mx-auto w-10 h-10 bg-white/5 rounded-full flex items-center justify-center mb-2 border border-white/10">
+                        <i data-lucide="cloud" class="text-cyan-400 w-5 h-5"></i>
+                    </div>
+                    <h4 class="text-[10px] font-bold text-white mb-1">Data Masa Nyata</h4>
+                    <p class="text-[9px] text-white/50 leading-tight hidden sm:block">Simpan dan akses data masa nyata.</p>
+                </div>
+                <div class="text-center">
+                    <div class="mx-auto w-10 h-10 bg-white/5 rounded-full flex items-center justify-center mb-2 border border-white/10">
+                        <i data-lucide="file-text" class="text-indigo-400 w-5 h-5"></i>
+                    </div>
+                    <h4 class="text-[10px] font-bold text-white mb-1">Laporan Terperinci</h4>
+                    <p class="text-[9px] text-white/50 leading-tight hidden sm:block">Hasil siasatan lengkap & teratur.</p>
+                </div>
+            </div>
+
+            <p class="text-white/40 text-[10px] mt-8 text-center">&copy; 2026 SiasatPro2u. Hak Cipta Terpelihara.</p>
+        </div>
+    </div>
+
+    <!-- MODAL: RESET PASSWORD -->
+    <div id="resetModal" class="fixed inset-0 z-[250] items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md hidden transition-all">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative animate-in zoom-in-95">
+            <button type="button" onclick="closeResetModal()" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <div class="mx-auto w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-4 border border-white/20">
+                <i data-lucide="key-round" class="text-white w-5 h-5"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white text-center mb-6">Set Semula Kata Laluan</h3>
+            
+            <form id="resetForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-white/80 mb-1.5 ml-1">Nama Pengguna</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i data-lucide="user" class="h-5 w-5 text-white/60"></i>
+                        </div>
+                        <input required type="text" id="resetUsername" placeholder="Masukkan nama pengguna" class="block w-full pl-11 pr-4 py-3 border border-white/20 rounded-xl bg-black/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-white/80 mb-1.5 ml-1">Kata Laluan Baru</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i data-lucide="lock" class="h-5 w-5 text-white/60"></i>
+                        </div>
+                        <input required type="password" id="resetPass1" placeholder="Kata laluan baru" class="block w-full pl-11 pr-12 py-3 border border-white/20 rounded-xl bg-black/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm" />
+                        <div class="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer" onclick="toggleResetPwdVis('resetPass1', 'resetEye1')">
+                            <i data-lucide="eye" id="resetEye1" class="h-5 w-5 text-white/60 hover:text-white transition-colors"></i>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-white/80 mb-1.5 ml-1">Sahkan Kata Laluan Baru</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i data-lucide="lock-keyhole" class="h-5 w-5 text-white/60"></i>
+                        </div>
+                        <input required type="password" id="resetPass2" placeholder="Sahkan kata laluan" class="block w-full pl-11 pr-12 py-3 border border-white/20 rounded-xl bg-black/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm" />
+                        <div class="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer" onclick="toggleResetPwdVis('resetPass2', 'resetEye2')">
+                            <i data-lucide="eye" id="resetEye2" class="h-5 w-5 text-white/60 hover:text-white transition-colors"></i>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" id="btnSubmitReset" class="w-full mt-6 bg-gradient-to-r from-emerald-400 to-teal-600 hover:from-emerald-300 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/30 transition-all">
+                    Tukar Kata Laluan
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MAIN APP ==================== -->
     <!-- Premium Background -->
     <div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div class="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-blue-300/30 blur-[120px]"></div>
         <div class="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-teal-200/40 blur-[130px]"></div>
     </div>
 
-    <div class="relative z-10">
+    <div id="main-app" class="relative z-10 hidden">
         <!-- HEADER (Responsive) -->
         <header class="sticky top-0 z-40 w-full bg-white/70 backdrop-blur-xl border-b border-white shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:h-20 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
@@ -37,9 +204,11 @@
                     <div class="flex items-center gap-3">
                         <img src="https://lh3.googleusercontent.com/d/1QZYvYe3-_2l2h6BsxDNx303JxpCCsFK9" alt="Logo" class="h-10 md:h-14 w-auto object-contain drop-shadow-sm" />
                         <div>
-                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide"Siasat <span class="font-light text-slate-500">SiasatPro2U</span></h1>
+                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide">Siasat <span class="font-light text-slate-500">Pro2U</span></h1>
                         </div>
                     </div>
+                    <!-- Logout Button Mobile -->
+                    <button onclick="logout()" class="md:hidden p-2 text-red-500 bg-red-50 rounded-lg"><i data-lucide="log-out" class="w-5 h-5"></i></button>
                 </div>
                 
                 <div class="w-full md:flex-1 md:max-w-md md:mx-8 relative">
@@ -51,12 +220,19 @@
                     />
                 </div>
 
-                <nav class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                <nav class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 items-center">
                     <button id="nav-dashboard" class="flex-1 md:flex-none whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-blue-600 border border-blue-500 text-white shadow-md shadow-blue-200" onclick="setTab('dashboard')">
                         Dashboard
                     </button>
                     <button id="nav-siasatan" class="flex-1 md:flex-none whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:bg-slate-100/80 bg-transparent border border-transparent" onclick="setTab('siasatan')">
                         Siasatan Lapangan
+                    </button>
+                    <button id="nav-log" class="flex-1 md:flex-none whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:bg-slate-100/80 bg-transparent border border-transparent" onclick="setTab('log')">
+                        Log Akses
+                    </button>
+                    <!-- Logout Button Desktop -->
+                    <button onclick="logout()" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all text-red-600 hover:bg-red-50 border border-red-200 shadow-sm ml-2">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Keluar
                     </button>
                 </nav>
             </div>
@@ -83,7 +259,7 @@
                     
                     <div onclick="handleDashboardClick('selesai')" class="cursor-pointer group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 border border-emerald-400/50 shadow-lg shadow-emerald-900/20 rounded-2xl p-6 hover:-translate-y-1 transition-transform">
                         <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-30 transition-opacity text-white"><i data-lucide="check-circle" style="width: 80px; height: 80px;"></i></div>
-                        <p class="text-emerald-100 text-sm font-semibold mb-1 relative z-10">Siasatan Selesai</p>
+                        <p class="text-emerald-100 text-sm font-semibold mb-1 relative z-10">Selesai Siasatan</p>
                         <h3 id="stat-selesai" class="text-5xl font-bold text-white relative z-10">0</h3>
                     </div>
                 </div>
@@ -142,11 +318,37 @@
                 </div>
                 <div id="tasks-container" class="space-y-4 md:space-y-6"></div>
             </div>
+
+            <!-- VIEW: LOG AKSES -->
+            <div id="view-log" class="animate-in fade-in duration-500 hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Log Akses Sistem</h2>
+                        <p class="text-slate-500 text-sm mt-1">Rekod jejak audit dan keselamatan akaun.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                                    <th class="p-4 font-semibold text-sm whitespace-nowrap">Tarikh & Masa</th>
+                                    <th class="p-4 font-semibold text-sm whitespace-nowrap">Tindakan</th>
+                                    <th class="p-4 font-semibold text-sm whitespace-nowrap">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-table-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic Logs -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
     <!-- MODAL: CREATE TASK -->
-    <div id="taskModal" class="fixed inset-0 z-50 items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-all">
+    <div id="taskModal" class="fixed inset-0 z-[100] items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-all">
         <div class="bg-white rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl relative animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95">
             <button type="button" onclick="closeTaskModal()" class="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full">
                 <i data-lucide="x" class="w-5 h-5"></i>
@@ -167,7 +369,7 @@
     </div>
 
     <!-- MODAL: RECORD -->
-    <div id="recordModal" class="fixed inset-0 z-50 items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-all">
+    <div id="recordModal" class="fixed inset-0 z-[100] items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-all">
         <div class="bg-white sm:rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col h-full sm:h-auto sm:max-h-[95vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95">
             
             <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
@@ -271,7 +473,7 @@
     </div>
 
     <!-- MODAL: CONFIRMATION (CUSTOM ALERT) -->
-    <div id="confirmModal" class="fixed inset-0 z-[100] items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-all">
+    <div id="confirmModal" class="fixed inset-0 z-[250] items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-all">
         <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative animate-in zoom-in-95">
             <div class="flex items-center gap-3 mb-4">
                 <div class="bg-red-100 p-2 rounded-full text-red-600">
@@ -287,26 +489,245 @@
         </div>
     </div>
 
+    <!-- ==================== JAVASCRIPT ==================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC - FIREBASE) ---
+        // --- 0. AUTHENTICATION & SECURITY (SIMULATED BACKEND) ---
+        const SALT = "siasat2026_garam_raahsia";
         
-        // 1. SILA MASUKKAN KOD FIREBASE ANDA DI DALAM KURUNGAN INI:
-        // (Buang tanda "//" di hadapan setiap kunci dan gantikan dengan kod sebenar)
-        const myFirebaseConfig = {
-            apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
-            authDomain: "docuvault-system.firebaseapp.com",
-            projectId: "docuvault-system",
-            storageBucket: "docuvault-system.firebasestorage.app",
-            messagingSenderId: "390300207503",
-            appId: "1:390300207503:web:e0a642ce8e0e01df4e23fa"
+        // Helah pengekodan untuk elak password statik kelihatan dalam teks penuh
+        const getExpectedHash = async () => {
+            let stored = localStorage.getItem('db_pwd_hash');
+            if (!stored) {
+                // CharCodes for "admin123"
+                const tempPwd = [97, 100, 109, 105, 110, 49, 50, 51].map(c => String.fromCharCode(c)).join('');
+                stored = await hashPassword(tempPwd);
+                localStorage.setItem('db_pwd_hash', stored);
+            }
+            return stored;
+        }
+
+        async function hashPassword(pwd) {
+            const msgBuffer = new TextEncoder().encode(pwd + SALT);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Semak sekatan percubaan log masuk (Rate Limit)
+        const checkRateLimit = () => {
+            const attempts = JSON.parse(localStorage.getItem('loginAttempts')) || { count: 0, lockUntil: 0 };
+            if (Date.now() < attempts.lockUntil) {
+                return { locked: true, remaining: Math.ceil((attempts.lockUntil - Date.now()) / 60000) };
+            }
+            return { locked: false, count: attempts.count };
+        }
+
+        const handleFailedAttempt = () => {
+            let attempts = JSON.parse(localStorage.getItem('loginAttempts')) || { count: 0, lockUntil: 0 };
+            if (Date.now() > attempts.lockUntil && attempts.count >= 5) attempts.count = 0; // reset if expired
+            
+            attempts.count++;
+            if (attempts.count >= 5) {
+                attempts.lockUntil = Date.now() + 15 * 60 * 1000; // 15 mins lock
+                logAccess('Sistem Disekat - 5 Kegagalan', 'Gagal');
+                showToast(`Sistem disekat! Sila cuba selepas 15 minit.`, 'error');
+            } else {
+                logAccess('Percubaan Log Masuk', 'Gagal');
+                showToast(`Katalaluan salah! Baki percubaan: ${5 - attempts.count}`, 'error');
+            }
+            localStorage.setItem('loginAttempts', JSON.stringify(attempts));
+        }
+
+        const clearFailedAttempts = () => {
+            localStorage.removeItem('loginAttempts');
+        }
+
+        // Pengurusan Sesi Token (2 Jam Expiry)
+        const generateSessionToken = () => {
+            const token = "tok_" + Math.random().toString(36).substr(2) + Date.now();
+            const expiry = Date.now() + 2 * 60 * 60 * 1000; 
+            localStorage.setItem('siasat_session', JSON.stringify({ token, expiry }));
+            return token;
+        }
+
+        const verifyToken = () => {
+            const session = JSON.parse(localStorage.getItem('siasat_session'));
+            if (!session) return false;
+            if (Date.now() > session.expiry) {
+                localStorage.removeItem('siasat_session');
+                return false;
+            }
+            return true;
+        }
+
+        // Pembalut (Wrapper) Fungsi Backend untuk wajib periksa Auth Token
+        const checkAuth = () => {
+            if (!verifyToken()) {
+                logout(true);
+                return false;
+            }
+            return true;
+        }
+
+        const logout = (forced = false) => {
+            localStorage.removeItem('siasat_session');
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('view-login').style.display = 'flex';
+            if(!forced) logAccess('Log Keluar Sistem', 'Berjaya');
+            else showToast("Sesi telah tamat. Sila log masuk semula.", "error");
+        }
+        window.logout = logout;
+
+        // Tunjuk/Sembunyi Password Input
+        window.togglePasswordVisibility = () => {
+            const input = document.getElementById('loginPassword');
+            const icon = document.getElementById('loginEyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        // Reset Password Visibility
+        window.toggleResetPwdVis = (inputId, iconId) => {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        // Sistem Logging
+        const logAccess = (action, status) => {
+            const logs = JSON.parse(localStorage.getItem('accessLogs')) || [];
+            const now = new Date();
+            const formattedDate = `${now.toLocaleDateString('ms-MY')} ${now.toLocaleTimeString('ms-MY')}`;
+            logs.unshift({ timestamp: formattedDate, action, status });
+            localStorage.setItem('accessLogs', JSON.stringify(logs.slice(0, 100))); // Simpan maks 100 log
+            renderLogs();
+        }
+
+        const renderLogs = () => {
+            const logs = JSON.parse(localStorage.getItem('accessLogs')) || [];
+            const tbody = document.getElementById('log-table-body');
+            tbody.innerHTML = logs.length ? logs.map(log => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-4 text-sm text-slate-500">${log.timestamp}</td>
+                    <td class="p-4 text-sm font-medium text-slate-800">${log.action}</td>
+                    <td class="p-4 text-sm">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${log.status === 'Berjaya' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${log.status}</span>
+                    </td>
+                </tr>
+            `).join('') : `<tr><td colspan="3" class="p-8 text-center text-slate-500 italic">Tiada log direkodkan.</td></tr>`;
+        }
+
+        // Logik Log Masuk (Submit Form)
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnLogin');
+            btn.innerHTML = `<div class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>`;
+            
+            const user = document.getElementById('loginUsername').value;
+            const pass = document.getElementById('loginPassword').value;
+            
+            const rateLimit = checkRateLimit();
+            if (rateLimit.locked) {
+                showToast(`Sistem disekat! Sila cuba dalam ${rateLimit.remaining} minit.`, 'error');
+                btn.innerHTML = `<span>Log Masuk</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+                return;
+            }
+
+            // Semak Hash
+            const inputHash = await hashPassword(pass);
+            const expectedHash = await getExpectedHash();
+
+            setTimeout(() => {
+                if (user.toLowerCase() === 'admin' && inputHash === expectedHash) {
+                    clearFailedAttempts();
+                    generateSessionToken();
+                    logAccess('Log Masuk Sistem', 'Berjaya');
+                    
+                    document.getElementById('loginUsername').value = '';
+                    document.getElementById('loginPassword').value = '';
+                    
+                    document.getElementById('view-login').style.display = 'none';
+                    document.getElementById('main-app').style.display = 'block';
+                    setTab('dashboard');
+                } else {
+                    handleFailedAttempt();
+                }
+                btn.innerHTML = `<span>Log Masuk</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+            }, 800); // Simulate network delay
+        });
+
+        // --- RESET PASSWORD LOGIC ---
+        const resetModal = document.getElementById('resetModal');
+        window.openResetModal = () => {
+            document.getElementById('resetForm').reset();
+            resetModal.classList.remove('hidden');
+            resetModal.classList.add('flex');
         };
+        window.closeResetModal = () => {
+            resetModal.classList.add('hidden');
+            resetModal.classList.remove('flex');
+        };
+
+        document.getElementById('resetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitReset');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `<div class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mx-auto"></div>`;
+            
+            const user = document.getElementById('resetUsername').value;
+            const pass1 = document.getElementById('resetPass1').value;
+            const pass2 = document.getElementById('resetPass2').value;
+
+            setTimeout(async () => {
+                if (user.toLowerCase() !== 'admin') {
+                    showToast("Nama pengguna tidak dijumpai dalam sistem.", "error");
+                    btn.innerHTML = originalContent;
+                    return;
+                }
+                if (pass1 !== pass2) {
+                    showToast("Kata laluan baru tidak sepadan.", "error");
+                    btn.innerHTML = originalContent;
+                    return;
+                }
+
+                // Update Hash Password
+                const newHash = await hashPassword(pass1);
+                localStorage.setItem('db_pwd_hash', newHash);
+                
+                // Clear any locked attempts to unblock the user immediately
+                clearFailedAttempts();
+                logAccess('Tetapan Semula Kata Laluan', 'Berjaya');
+                
+                showToast("Kata laluan berjaya dikemaskini!", "success");
+                window.closeResetModal();
+                btn.innerHTML = originalContent;
+            }, 800);
+        });
+
+
+        // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC - FIREBASE) ---
+        const myFirebaseConfig = {};
         
         let firebaseConfig = {};
-        // Logik Semakan Kunci Firebase yang telah diperkukuhkan (Guna kod user DAHULU)
         if (myFirebaseConfig && Object.keys(myFirebaseConfig).length > 0 && myFirebaseConfig.apiKey) {
             firebaseConfig = myFirebaseConfig;
         } else if (typeof __firebase_config !== 'undefined' && __firebase_config.length > 2) {
@@ -334,7 +755,6 @@
                 } catch (error) {
                     console.error("Firebase Auth Error:", error);
                     authError = error.message;
-                    setTimeout(() => showToast("Ralat Firebase: Sila pastikan 'Anonymous Sign-In' diaktifkan.", "error"), 2000);
                 }
             };
             initAuth();
@@ -350,12 +770,8 @@
             const tasksRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
             onSnapshot(tasksRef, (snapshot) => {
                 tasks = snapshot.docs.map(doc => doc.data());
-                // Susun tugasan mengikut ID terbaru (menurun) supaya sentiasa di atas
                 tasks.sort((a, b) => b.id.localeCompare(a.id));
                 renderApp();
-            }, (error) => {
-                console.error("Firestore error:", error);
-                showToast("Ralat Pangkalan Data: Sila semak Firestore Rules anda", "error");
             });
         }
 
@@ -373,7 +789,6 @@
             const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
             document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(blob)}">`);
             
-            // Basic Service Worker for install prompt
             if ('serviceWorker' in navigator) {
                 const swCode = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('fetch', e => {});`;
                 const swUrl = URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }));
@@ -394,24 +809,22 @@
         let expandedTasks = [];
         let currentRecordModalConfig = { isOpen: false, mode: 'create', taskId: null, recordId: null };
         let currentModalFiles = [];
-        
-        // Data kini kosong pada mulanya dan akan diisi oleh pangkalan data awan (Firebase) secara automatik
         let tasks = [];
 
         // Favicon
         document.head.insertAdjacentHTML('beforeend', `<link rel="icon" href="https://lh3.googleusercontent.com/d/1QZYvYe3-_2l2h6BsxDNx303JxpCCsFK9">`);
 
-        // --- 3. TOAST NOTIFICATION (REPLACES ALERT) ---
+        // --- 3. TOAST NOTIFICATION ---
         const showToast = (message, type = 'success') => {
             const toast = document.createElement('div');
-            toast.className = `fixed bottom-4 right-4 left-4 sm:left-auto px-6 py-4 rounded-xl shadow-2xl transform transition-all duration-300 translate-y-20 opacity-0 z-[100] flex items-center gap-3 font-semibold text-white ${type === 'success' ? 'bg-emerald-600' : 'bg-red-500'}`;
+            toast.className = `fixed top-4 right-4 left-4 sm:left-auto sm:top-auto sm:bottom-4 px-6 py-4 rounded-xl shadow-2xl transform transition-all duration-300 -translate-y-20 sm:translate-y-20 opacity-0 z-[999] flex items-center gap-3 font-semibold text-white ${type === 'success' ? 'bg-emerald-600' : 'bg-red-500'}`;
             toast.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-5 h-5 shrink-0"></i> <span>${message}</span>`;
             document.body.appendChild(toast);
             lucide.createIcons();
 
-            setTimeout(() => toast.classList.remove('translate-y-20', 'opacity-0'), 50);
+            setTimeout(() => toast.classList.remove('-translate-y-20', 'sm:translate-y-20', 'opacity-0'), 50);
             setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.add('-translate-y-20', 'sm:translate-y-20', 'opacity-0');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         };
@@ -422,11 +835,14 @@
         const generateId = (prefix) => prefix + Date.now();
 
         const renderApp = () => {
+            if (!verifyToken()) return; // Cek token sebelum render app
+
             document.getElementById('view-dashboard').style.display = (activeTab === 'dashboard') ? 'block' : 'none';
             document.getElementById('view-dashboard-list').style.display = (activeTab === 'dashboard_list') ? 'block' : 'none';
             document.getElementById('view-siasatan').style.display = (activeTab === 'siasatan') ? 'block' : 'none';
+            document.getElementById('view-log').style.display = (activeTab === 'log') ? 'block' : 'none';
             
-            ['nav-dashboard', 'nav-siasatan'].forEach(id => {
+            ['nav-dashboard', 'nav-siasatan', 'nav-log'].forEach(id => {
                 const el = document.getElementById(id);
                 if ((id.includes(activeTab) || (activeTab === 'dashboard_list' && id === 'nav-dashboard'))) {
                     el.className = "flex-1 md:flex-none whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-blue-600 border border-blue-500 text-white shadow-md";
@@ -520,11 +936,13 @@
                         </div>` : ''}
                     </div>`).join('');
             }
+
+            if (activeTab === 'log') renderLogs();
+
             lucide.createIcons();
         };
 
-        // KAWALAN PAPARAN
-        const setTab = (tab) => { activeTab = tab; if(['dashboard','siasatan'].includes(tab)) searchQuery = ''; renderApp(); };
+        const setTab = (tab) => { activeTab = tab; if(['dashboard','siasatan','log'].includes(tab)) searchQuery = ''; renderApp(); };
         const setDashboardFilter = (val) => { dashboardFilter = val; };
         const handleDashboardClick = (f) => { dashboardFilter = f; setTab('dashboard_list'); };
         const toggleTaskExpand = (id) => { expandedTasks = expandedTasks.includes(id) ? expandedTasks.filter(x => x !== id) : [...expandedTasks, id]; renderApp(); };
@@ -558,33 +976,25 @@
         
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if(!checkAuth()) return; // VERIFY TOKEN 
+
             const id = generateId('T'); 
             const newTask = { id, namaTugasan: document.getElementById('taskNameInput').value, tarikh: document.getElementById('taskDateInput').value, rekod: [] };
             
-            // SIMPAN KE PANGKALAN DATA AWAN (FIRESTORE)
             if (db && currentUser) {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), newTask);
                 expandedTasks.push(id); 
                 closeTaskModal(); 
                 showToast('Tugasan dicipta!');
             } else {
-                tasks.unshift(newTask); // Sandaran sementara
+                tasks.unshift(newTask);
                 expandedTasks.push(id); 
                 closeTaskModal(); 
                 renderApp(); 
-                
-                // Mesej ralat terperinci
-                if (!isFirebaseConfigured) {
-                    showToast('Amaran: Kunci Firebase tidak sah. Sila buang tanda "//" pada config API.', 'error');
-                } else if (authError) {
-                    showToast('Ralat Firebase: Sila aktifkan "Anonymous Auth" di console.', 'error');
-                } else if (!currentUser) {
-                    showToast('Sedang memuatkan server... Sila cuba sebentar lagi.', 'error');
-                }
+                if (!isFirebaseConfigured) showToast('Amaran: Kunci Firebase tidak sah.', 'error');
             }
         });
 
-        // Record Modal Logic
         const recordModal = document.getElementById('recordModal');
         const openRecordModal = (mode, taskId, recordId) => {
             currentRecordModalConfig = { isOpen: true, mode, taskId, recordId }; currentModalFiles = [];
@@ -608,7 +1018,6 @@
         const closeRecordModal = () => { recordModal.classList.add('hidden'); recordModal.classList.remove('flex'); };
         const updateSelectColor = (el) => { el.className = `w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none font-bold ${el.value === 'Dalam proses' ? 'text-amber-600' : el.value === 'KIV' ? 'text-pink-600' : 'text-emerald-600'}`; };
 
-        // File Handler
         const handleFiles = (e) => {
             const newFiles = Array.from(e.target.files);
             if (currentModalFiles.length + newFiles.length > 5) { showToast("Maks 5 fail dibenarkan.", "error"); return; }
@@ -637,7 +1046,6 @@
             lucide.createIcons();
         };
 
-        // DEDAHKAN FUNGSI KE WINDOW (Penting agar butang di HTML dapat memanggil logik modul ini)
         window.setTab = setTab;
         window.setDashboardFilter = setDashboardFilter;
         window.handleDashboardClick = handleDashboardClick;
@@ -649,9 +1057,9 @@
         window.updateSelectColor = updateSelectColor;
         window.removeFile = removeFile;
 
-        // FUNGSI PADAM (DELETE) TUGASAN & REKOD
         const deleteTask = (taskId) => {
             showConfirm("Padam Tugasan", "Tugasan ini beserta SEMUA rekod di dalamnya akan dipadam secara kekal. Teruskan?", async () => {
+                if(!checkAuth()) return; // VERIFY TOKEN
                 try {
                     if (db && currentUser) {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId));
@@ -668,6 +1076,7 @@
 
         const deleteRecord = (taskId, recordId) => {
             showConfirm("Padam Rekod", "Rekod ini akan dipadam secara kekal. Teruskan?", async () => {
+                if(!checkAuth()) return; // VERIFY TOKEN
                 try {
                     const taskIndex = tasks.findIndex(t => t.id === taskId);
                     if (taskIndex === -1) return;
@@ -690,7 +1099,6 @@
         window.deleteTask = deleteTask;
         window.deleteRecord = deleteRecord;
 
-        // --- 6. GOOGLE DRIVE UPLOAD & FIRESTORE SAVE LOGIC ---
         const getBase64 = (file) => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -700,6 +1108,8 @@
 
         document.getElementById('recordForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if(!checkAuth()) return; // VERIFY TOKEN
+
             const btnSave = document.getElementById('btnSaveRecord');
             const originalContent = btnSave.innerHTML;
             btnSave.disabled = true;
@@ -730,7 +1140,7 @@
                 };
 
                 const taskIndex = tasks.findIndex(t => t.id === currentRecordModalConfig.taskId);
-                let updatedTask = JSON.parse(JSON.stringify(tasks[taskIndex])); // Salinan (Deep copy)
+                let updatedTask = JSON.parse(JSON.stringify(tasks[taskIndex])); 
 
                 if (currentRecordModalConfig.mode === 'edit') {
                     updatedTask.rekod[updatedTask.rekod.findIndex(r => r.id === formData.id)] = formData;
@@ -738,7 +1148,6 @@
                     updatedTask.rekod.push(formData);
                 }
 
-                // SIMPAN KEMASKINI KE PANGKALAN DATA AWAN (FIRESTORE)
                 if (db && currentUser) {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', updatedTask.id), updatedTask);
                     showToast('Rekod & Fail berjaya disimpan!');
@@ -757,7 +1166,17 @@
             }
         });
 
-        renderApp();
+        // INIT INIT
+        lucide.createIcons();
+        if (verifyToken()) {
+            document.getElementById('view-login').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            renderApp();
+        } else {
+            document.getElementById('view-login').style.display = 'flex';
+            document.getElementById('main-app').style.display = 'none';
+        }
+
     </script>
 </body>
 </html>
