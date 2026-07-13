@@ -204,7 +204,7 @@
                     <div class="flex items-center gap-3">
                         <img src="https://lh3.googleusercontent.com/d/1QZYvYe3-_2l2h6BsxDNx303JxpCCsFK9" alt="Logo" class="h-10 md:h-14 w-auto object-contain drop-shadow-sm" />
                         <div>
-                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide">Siasat <span class="font-light text-slate-500">Pro2U</span></h1>
+                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide">Siasat <span class="font-light text-slate-500">Pro2u</span></h1>
                         </div>
                     </div>
                     <!-- Logout Button Mobile -->
@@ -493,23 +493,12 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 0. AUTHENTICATION & SECURITY (SIMULATED BACKEND) ---
+        // --- 0. AUTHENTICATION & SECURITY (SIMULATED BACKEND & CLOUD SYNC) ---
         const SALT = "siasat2026_garam_raahsia";
+        let CLOUD_DB_READY = false; // Flag to check if we can query DB for password
         
-        // Helah pengekodan untuk elak password statik kelihatan dalam teks penuh
-        const getExpectedHash = async () => {
-            let stored = localStorage.getItem('db_pwd_hash');
-            if (!stored) {
-                // CharCodes for "admin123"
-                const tempPwd = [97, 100, 109, 105, 110, 49, 50, 51].map(c => String.fromCharCode(c)).join('');
-                stored = await hashPassword(tempPwd);
-                localStorage.setItem('db_pwd_hash', stored);
-            }
-            return stored;
-        }
-
         async function hashPassword(pwd) {
             const msgBuffer = new TextEncoder().encode(pwd + SALT);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -596,21 +585,33 @@
             lucide.createIcons();
         }
 
-        // Reset Password Visibility
-        window.toggleResetPwdVis = (inputId, iconId) => {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(iconId);
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.setAttribute('data-lucide', 'eye-off');
-            } else {
-                input.type = 'password';
-                icon.setAttribute('data-lucide', 'eye');
+        // Mengambil Password Hash (Dari Cloud Firestore ATAU LocalStorage jika offline)
+        const getExpectedHash = async () => {
+            try {
+                if (CLOUD_DB_READY && db && currentUser) {
+                    const settingsRef = doc(db, 'artifacts', appId, 'public', 'settings', 'auth');
+                    const settingsSnap = await getDoc(settingsRef);
+                    if (settingsSnap.exists() && settingsSnap.data().pwd_hash) {
+                        return settingsSnap.data().pwd_hash;
+                    }
+                }
+            } catch (e) {
+                console.warn("Gagal membaca password dari awan, beralih ke cache setempat.", e);
             }
-            lucide.createIcons();
+
+            // Fallback (Local Storage atau Default)
+            let stored = localStorage.getItem('db_pwd_hash');
+            if (!stored) {
+                // CharCodes for "admin123"
+                const tempPwd = [97, 100, 109, 105, 110, 49, 50, 51].map(c => String.fromCharCode(c)).join('');
+                stored = await hashPassword(tempPwd);
+                // Simpan ke local jika Cloud tiada
+                localStorage.setItem('db_pwd_hash', stored);
+            }
+            return stored;
         }
 
-        // Sistem Logging
+        // Sistem Logging (Local Only for Security)
         const logAccess = (action, status) => {
             const logs = JSON.parse(localStorage.getItem('accessLogs')) || [];
             const now = new Date();
@@ -697,7 +698,7 @@
             const pass1 = document.getElementById('resetPass1').value;
             const pass2 = document.getElementById('resetPass2').value;
 
-            setTimeout(async () => {
+            try {
                 if (user.toLowerCase() !== 'admin') {
                     showToast("Nama pengguna tidak dijumpai dalam sistem.", "error");
                     btn.innerHTML = originalContent;
@@ -711,6 +712,14 @@
 
                 // Update Hash Password
                 const newHash = await hashPassword(pass1);
+                
+                // SIMPAN KE CLOUD FIRESTORE SUPAYA SEMUA PERANTI UPDATE
+                if (CLOUD_DB_READY && db && currentUser) {
+                    const settingsRef = doc(db, 'artifacts', appId, 'public', 'settings', 'auth');
+                    await setDoc(settingsRef, { pwd_hash: newHash }, { merge: true });
+                }
+                
+                // Juga simpan ke lokal sebagai sandaran
                 localStorage.setItem('db_pwd_hash', newHash);
                 
                 // Clear any locked attempts to unblock the user immediately
@@ -720,7 +729,10 @@
                 showToast("Kata laluan berjaya dikemaskini!", "success");
                 window.closeResetModal();
                 btn.innerHTML = originalContent;
-            }, 800);
+            } catch (err) {
+                 showToast("Gagal menukar kata laluan: " + err.message, "error");
+                 btn.innerHTML = originalContent;
+            }
         });
 
 
@@ -768,7 +780,10 @@
 
             onAuthStateChanged(auth, (user) => {
                 currentUser = user;
-                if (user) setupRealtimeListener();
+                if (user) {
+                    CLOUD_DB_READY = true;
+                    setupRealtimeListener();
+                }
             });
         }
 
