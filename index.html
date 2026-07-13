@@ -204,7 +204,7 @@
                     <div class="flex items-center gap-3">
                         <img src="https://lh3.googleusercontent.com/d/1QZYvYe3-_2l2h6BsxDNx303JxpCCsFK9" alt="Logo" class="h-10 md:h-14 w-auto object-contain drop-shadow-sm" />
                         <div>
-                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide">Siasat <span class="font-light text-slate-500">Pro2u</span></h1>
+                            <h1 class="text-lg md:text-xl font-bold text-slate-800 tracking-wide">i-Siasat <span class="font-light text-slate-500">Pro</span></h1>
                         </div>
                     </div>
                     <!-- Logout Button Mobile -->
@@ -737,13 +737,13 @@
 
 
         // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC - FIREBASE) ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
-          authDomain: "docuvault-system.firebaseapp.com",
-          projectId: "docuvault-system",
-          storageBucket: "docuvault-system.firebasestorage.app",
-          messagingSenderId: "390300207503",
-          appId: "1:390300207503:web:e0a642ce8e0e01df4e23fa"
+        const myFirebaseConfig = {
+            apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
+            authDomain: "docuvault-system.firebaseapp.com",
+            projectId: "docuvault-system",
+            storageBucket: "docuvault-system.firebasestorage.app",
+            messagingSenderId: "390300207503",
+            appId: "1:390300207503:web:e0a642ce8e0e01df4e23fa"
         };
         
         let firebaseConfig = {};
@@ -800,8 +800,8 @@
         // --- 1. SETUP PWA (NATIVE APP) ---
         const setupPWA = () => {
             const manifest = {
-                name: "SiasatPro2u",
-                short_name: "SiasatPro2u",
+                name: "SiasatPro2",
+                short_name: "SiasatPro2",
                 start_url: ".",
                 display: "standalone",
                 background_color: "#f4f7fb",
