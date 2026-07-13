@@ -589,7 +589,7 @@
         const getExpectedHash = async () => {
             try {
                 if (CLOUD_DB_READY && db && currentUser) {
-                    const settingsRef = doc(db, 'artifacts', appId, 'public', 'settings', 'auth');
+                    const settingsRef = doc(db, 'artifacts', appId, 'public', 'settings');
                     const settingsSnap = await getDoc(settingsRef);
                     if (settingsSnap.exists() && settingsSnap.data().pwd_hash) {
                         return settingsSnap.data().pwd_hash;
@@ -715,7 +715,7 @@
                 
                 // SIMPAN KE CLOUD FIRESTORE SUPAYA SEMUA PERANTI UPDATE
                 if (CLOUD_DB_READY && db && currentUser) {
-                    const settingsRef = doc(db, 'artifacts', appId, 'public', 'settings', 'auth');
+                    const settingsRef = doc(db, 'artifacts', appId, 'public', 'settings');
                     await setDoc(settingsRef, { pwd_hash: newHash }, { merge: true });
                 }
                 
@@ -737,7 +737,7 @@
 
 
         // --- 0. SETUP PANGKALAN DATA (REALTIME SYNC - FIREBASE) ---
-        const myFirebaseConfig = {
+        const firebaseConfig = {
           apiKey: "AIzaSyAcSw-hfF-w_hRH4El-LQ2rLocvR-SVN7A",
           authDomain: "docuvault-system.firebaseapp.com",
           projectId: "docuvault-system",
